@@ -74,6 +74,7 @@ process:
   timebox_enforcement: hard
   language: zh
 compliance:
+  ai_policy: cumcm_ai_2026_trial
   declare_ai: true
   anonymize: true
   similarity_guard: 25

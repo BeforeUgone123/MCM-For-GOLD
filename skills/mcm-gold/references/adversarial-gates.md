@@ -51,7 +51,7 @@
 23. 有没有模板腔/网上常见段落（相似度风险）？
 24. 是否有身份信息泄漏（PDF 元数据、代码路径中的用户名、图片 EXIF、Git 配置）？
 25. 页数/文件大小/页码/文件命名是否达标？
-26. AI 使用是否已按规定标注、著录、留存交互记录？
+26. 参考文献之前是否有与实际使用一致的 2026 版 AI 声明；使用 AI 时是否有 `AI 工具使用详情.pdf`、逐项人工核验和队员主导核心建模/分析的证据？
 27. 题意、路线、关键事实、结果解释与最终提交是否分别关联适用 H-001~H-005？AI 是否把代理判断写成人的确认？
 28. 冻结后的数值/结论是否用新 R/C/F-id 替代并记录 `SUPERSEDED`？主状态目录是否拒绝复用 R-id，避免重跑产生的新 `PENDING` 遮蔽已确认记录？
 29. 每个准备进入论文的 claim/figure 是否能沿证据链回到真实运行或权威来源，并有具体 PASS evidence？
@@ -95,7 +95,7 @@ deliverables/
 ├─ submission/                  # 电子提交只上传以下两个文件
 │  ├─ paper.pdf                 # 首页=摘要页，≤20MB
 │  └─ support.zip               # staging/support 的内容，≤20MB
-├─ staging/support/             # README、requirements、run_all.py、src/、data/、figures/、intermediate/、AI工具使用详情.pdf（若使用）
+├─ staging/support/             # README、requirements、run_all.py、src/、data/、figures/、intermediate/、AI 工具使用详情.pdf（若使用）
 ├─ print/paper_print.pdf        # 含承诺书+编号页的纸质版
 └─ archive/                     # STATE/DECISIONS/RESULTS/SOURCES/...，不提交
 ```
@@ -119,6 +119,8 @@ deliverables/
 - [ ] 符号全文统一，符号表完整
 - [ ] 公式编号连续，正文引用正确
 - [ ] 参考文献编号与正文标注一一对应，条目真实可访问
+- [ ] 参考文献之前存在 2026 版“AI 工具使用声明”；使用 AI 时支撑包含文件名完全一致的 `AI 工具使用详情.pdf`
+- [ ] AI 参与内容有逐项人工审查与核实证据，核心建模与分析有参赛队主导记录；未沿用 2025 版正文标注/AI 参考文献旧模板作为强制项
 
 ### 机器可检
 - [ ] 正文页数 ≤30 且无目录

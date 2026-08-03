@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -50,6 +51,24 @@ STAGE_NATURE_LINKS = {
 }
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 EXTERNAL_NATURE_RE = re.compile(r"\$nature-|/skills/nature-|nature_adapter")
+OFFICIAL_PDFS = {
+    "cumcm-participation-rules-2026.pdf": "46d3837906bfd7049eb04c40cfc8b8436912d7edae98462ba064abfa381a8d3a",
+    "cumcm-ai-tool-policy-2026.pdf": "4cf6f30cdd37d6ef2cdb3439c5dba4d9f207c12d6aafe24419e81f3c69acf59a",
+    "cumcm-paper-format-2026.pdf": "cece4bb3a900a0435160032b98ea26e03b0f2d7eca58424b0d023e26085aed26",
+}
+RULES_REQUIRED = [
+    "参考文献之前",
+    "本参赛队在竞赛过程中未使用任何 AI 工具。",
+    "本参赛队在竞赛过程中使用了 AI 工具，主要用于",
+    "AI 工具使用详情.pdf",
+    "核心建模与分析由参赛队主导",
+    "逐项人工审查与核实",
+]
+RULES_FORBIDDEN = [
+    "cumcm_ai_2025",
+    "参考文献之后",
+    "正文已标注 + 参考文献已著录",
+]
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -67,7 +86,31 @@ def frontmatter(text: str) -> dict[str, str]:
 def validate() -> list[str]:
     errors: list[str] = []
     coordinator = (SKILLS_ROOT / "mcm-gold" / "SKILL.md").read_text(encoding="utf-8")
+    rules = (SKILLS_ROOT / "mcm-gold" / "references" / "rules-2026.md").read_text(
+        encoding="utf-8"
+    )
     names: set[str] = set()
+
+    source_root = REPO_ROOT / "sources" / "official" / "2026"
+    for filename, expected_hash in OFFICIAL_PDFS.items():
+        path = source_root / filename
+        if not path.is_file():
+            errors.append(f"missing official 2026 source PDF: {filename}")
+            continue
+        actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual_hash != expected_hash:
+            errors.append(
+                f"official source hash mismatch: {filename}: {actual_hash} != {expected_hash}"
+            )
+
+    for phrase in RULES_REQUIRED:
+        if phrase not in rules:
+            errors.append(f"rules-2026.md missing required 2026 policy text: {phrase}")
+    for phrase in RULES_FORBIDDEN:
+        if phrase in rules:
+            errors.append(f"rules-2026.md contains stale policy text: {phrase}")
+    if "cumcm_ai_2026_trial" not in coordinator:
+        errors.append("coordinator does not select the 2026 trial AI policy")
 
     for module in NATURE_MODULES:
         path = SKILLS_ROOT / "mcm-gold" / "references" / module
@@ -138,5 +181,5 @@ if __name__ == "__main__":
             print(f"- {problem}")
         sys.exit(1)
     print(
-        f"PASS: {len(EXPECTED)} skills, routes, metadata, links, and embedded Nature modules are consistent"
+        f"PASS: {len(EXPECTED)} skills, routes, metadata, links, embedded Nature modules, and 2026 rule sources are consistent"
     )

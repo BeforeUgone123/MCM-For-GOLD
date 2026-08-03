@@ -45,6 +45,12 @@ ${CODEX_HOME:-$HOME/.codex}/skills/
 
 当前版本仍是候选，不应直接覆盖 live skill。先完成 `CANDIDATE_STATUS.md` 中的跨题验证和人工审查。
 
+## 2026 官方规则快照
+
+用户提供的三份 2026 细则按内容重命名后保存在 `sources/official/2026/`，PDF 字节未改写，并由 `SOURCE_PDFS.sha256` 单独锁定：参赛规则、AI 工具使用规定、论文格式规范。可执行摘要在 `skills/mcm-gold/references/rules-2026.md`；摘要不替代原文，争议条款必须回查 PDF。
+
+当前候选已把新 AI 声明、固定详情文件名、人工核验责任和论文/支撑材料格式同步到 T7、T8、模板与 Gate。开赛前 24 小时仍须重新核验官网最新发布，发现冲突时以届时官方原文为准。
+
 ## 校验
 
 ```bash

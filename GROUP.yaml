@@ -1,10 +1,10 @@
 schema_version: 2
 repository: "https://github.com/beforeugone520/MCM-For-GOLD-"
-candidate: "v2.1-embedded-nature-stage-group"
+candidate: "v2.2-2026-rules-ingested"
 status: "CANDIDATE_NOT_LIVE"
 base:
-  candidate: "2026-08-03-v2.0-stage-skill-group-candidate"
-  manifest_sha256: "d69f07dd964f9f038d2a34f698065a797038372377ac5e1caf75abf233d83698"
+  candidate: "v2.1-embedded-nature-stage-group"
+  git_commit: "1d566802bc349b5f0ae5d460288fa67d84345b19"
   live_ancestor: "v1.7-nature-adapter"
   excludes_unpromoted_candidate: "v1.8-deliverable-closure-candidate"
 layout: "skills/atomic-sibling-group"
@@ -15,6 +15,14 @@ embedded_nature_modules:
   - "scientific-figures"
   - "writing-and-office"
   - "feedback-closure"
+official_rule_sources:
+  snapshot_date: "2026-08-03"
+  directory: "sources/official/2026"
+  documents:
+    - "cumcm-participation-rules-2026.pdf"
+    - "cumcm-ai-tool-policy-2026.pdf"
+    - "cumcm-paper-format-2026.pdf"
+  recheck_before_contest_hours: 24
 members:
   - "mcm-gold"
   - "mcm-gold-t0-prepare"

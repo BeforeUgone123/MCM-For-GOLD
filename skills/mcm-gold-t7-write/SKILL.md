@@ -26,8 +26,9 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 9. 逐项核对正文数字 = 图表数字 = `RESULTS.md` 数字，claim 的引用与 `SOURCES.md` 支撑等级对齐，metadata-only 不进入正文。
 10. `paper_format=word` 时，从 SourceModel 建 DocumentSpec，并直接用 `officecli` 生成和回读实际 DOCX；LaTeX 主线不绕到 Office。题面要求 PPTX 时从同一 SourceModel 建 SlideSpec 和实际 PPTX，不停在大纲。
 11. 论文正文不出现训练状态、内部 H/R 编号、责任边界、支撑清单或不可提交横幅；这些只留在论文外工作区。
-12. 若规则要求程序附录，生成完整合规提交版与省略程序的阅读审查版。`paper/main.pdf` 固定为纯论文入口，提交候选显式命名 `*_submission.pdf`。
-13. 依据 rubric 自评，优先修复会妨碍评委 5-15 分钟核查的缺口，不为凑页数填充背景。
+12. 在参考文献之前设置 2026 版“AI 工具使用声明”，从实际 `AI_USAGE.md` 二选一回填原文。使用 AI 时生成 `AI 工具使用详情.pdf` 并逐项回读工具名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验及核心建模与分析的队员主导证据；不把 AI 工具列入参考文献，不沿用 2025 版正文逐处标注旧模板。
+13. 若规则要求程序附录，生成完整合规提交版与省略程序的阅读审查版。`paper/main.pdf` 固定为纯论文入口，提交候选显式命名 `*_submission.pdf`。
+14. 依据 rubric 自评，优先修复会妨碍评委 5-15 分钟核查的缺口，不为凑页数填充背景。
 
 ## 产物
 
@@ -41,6 +42,6 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 
 ## Gate
 
-SourceModel、claim/figure/source-data 台账与论文一致；全文数字可追溯；摘要有具体数值和边界；每问六项齐全；图表经真实渲染核查；引用可访问且支撑等级足够；适用 Office 文件经 `officecli validate/view` 回读；提交版和阅读版不混淆；rubric 无单项低于及格线。live 模式必须由人完成 H-004，否则返回 `NEEDS_HUMAN`。
+SourceModel、claim/figure/source-data 台账与论文一致；全文数字可追溯；摘要有具体数值和边界；每问六项齐全；图表经真实渲染核查；引用可访问且支撑等级足够；2026 版 AI 声明位于参考文献之前且与过程记录一致；适用 Office 文件经 `officecli validate/view` 回读；提交版和阅读版不混淆；rubric 无单项低于及格线。live 模式必须由人完成 H-004，否则返回 `NEEDS_HUMAN`。
 
 把最终主张、论文文件哈希、主图状态、H-004、剩余表达风险和 T8 打包白名单写入 `[HANDOFF T7]`。
