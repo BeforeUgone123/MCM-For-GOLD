@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T3 数据审计"
+  short_description: "审计数据质量与泄漏并建立 claim-to-file 证据映射"
+  default_prompt: "使用 $mcm-gold-t3-audit-data 审计数据并建立主张到冻结文件的证据映射。"

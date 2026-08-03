@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T5 主模型求解"
+  short_description: "完成各小问主模型、跨问追溯、基线创新对照和证据化科学主图"
+  default_prompt: "使用 $mcm-gold-t5-solve 完成主模型、基线对照、跨问追溯和主图。"

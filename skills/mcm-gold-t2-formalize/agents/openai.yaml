@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T2 情报形式化"
+  short_description: "内置 claim 支撑分级、可信来源链、数学定义和主备路线"
+  default_prompt: "使用 $mcm-gold-t2-formalize 完成 claim 分级、调研、形式化和路线设计。"

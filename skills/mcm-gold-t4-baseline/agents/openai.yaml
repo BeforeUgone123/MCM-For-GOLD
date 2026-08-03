@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T4 基线模型"
+  short_description: "交付第一问基线、求解证据和内置 figure contract 主图"
+  default_prompt: "使用 $mcm-gold-t4-baseline 建立第一问基线、求解证据和证据化结果图。"

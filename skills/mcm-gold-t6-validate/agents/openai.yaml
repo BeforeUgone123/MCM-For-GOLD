@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T6 检验稳健性"
+  short_description: "用六类科学检验、独立复核和主图证据审计限制结论强度与范围"
+  default_prompt: "使用 $mcm-gold-t6-validate 对结果和主图执行六类检验与证据审计。"

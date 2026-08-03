@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T8 终检提交"
+  short_description: "执行机器终检、清环境复现和内置 Nature 交付闭环"
+  default_prompt: "使用 $mcm-gold-t8-submit 完成复现、Nature 证据闭环、打包终检与授权交接。"

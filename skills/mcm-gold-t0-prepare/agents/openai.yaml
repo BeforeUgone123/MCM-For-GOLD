@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T0 赛前准备"
+  short_description: "核验规则并固化环境、内置 Nature 绘图与最小复现闭环"
+  default_prompt: "使用 $mcm-gold-t0-prepare 完成赛前环境、内置 Nature 能力和最小闭环演练。"

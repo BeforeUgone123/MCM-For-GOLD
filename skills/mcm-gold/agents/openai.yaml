@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold 总控"
+  short_description: "协调阶段专家并内置 Nature 证据、图表、写作和交付门禁"
+  default_prompt: "使用 $mcm-gold 识别当前竞赛阶段，并以内置 Nature 质量层路由到对应专家。"

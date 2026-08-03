@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T1 读题选题"
+  short_description: "逐句拆解题面中心交付、主要证据、验证风险并形成可审计的选题裁决"
+  default_prompt: "使用 $mcm-gold-t1-select 拆解赛题中心交付、比较候选并形成定题建议。"

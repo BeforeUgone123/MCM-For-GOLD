@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCM Gold T7 论文图表"
+  short_description: "内置 SourceModel、Nature 图表写作和 Office 交付 QA"
+  default_prompt: "使用 $mcm-gold-t7-write 从 SourceModel 生成证据一致的论文、图表和 Office 交付。"

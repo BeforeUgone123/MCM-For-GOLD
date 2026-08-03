@@ -1,0 +1,35 @@
+schema_version: 2
+repository: "https://github.com/beforeugone520/MCM-For-GOLD-"
+candidate: "v2.1-embedded-nature-stage-group"
+status: "CANDIDATE_NOT_LIVE"
+base:
+  candidate: "2026-08-03-v2.0-stage-skill-group-candidate"
+  manifest_sha256: "d69f07dd964f9f038d2a34f698065a797038372377ac5e1caf75abf233d83698"
+  live_ancestor: "v1.7-nature-adapter"
+  excludes_unpromoted_candidate: "v1.8-deliverable-closure-candidate"
+layout: "skills/atomic-sibling-group"
+shared_owner: "mcm-gold"
+external_nature_skill_dependency: false
+embedded_nature_modules:
+  - "evidence-and-data"
+  - "scientific-figures"
+  - "writing-and-office"
+  - "feedback-closure"
+members:
+  - "mcm-gold"
+  - "mcm-gold-t0-prepare"
+  - "mcm-gold-t1-select"
+  - "mcm-gold-t2-formalize"
+  - "mcm-gold-t3-audit-data"
+  - "mcm-gold-t4-baseline"
+  - "mcm-gold-t5-solve"
+  - "mcm-gold-t6-validate"
+  - "mcm-gold-t7-write"
+  - "mcm-gold-t8-submit"
+promotion_requirements:
+  - "all members pass quick_validate.py"
+  - "group links, routes, metadata, and embedded-Nature checks pass"
+  - "one new-problem modular discovery run"
+  - "one different-family modular validation run"
+  - "human review of trigger boundaries, handoffs, and embedded Nature burden"
+  - "no frozen replay or score is modified in place"

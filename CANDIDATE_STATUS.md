@@ -1,0 +1,24 @@
+# V2.1 内置 Nature 阶段 Skill 群
+
+状态：`CANDIDATE_NOT_LIVE`。
+
+本仓库以冻结的 v2.0 阶段 skill 群为基线，把 Nature 风格能力直接融入总控和 T0-T8 专家。运行时不调用任何额外 `nature-*` skill。
+
+## 已内置
+
+- Claim 分段、来源层级、`strong/partial/background/limiting/metadata-only` 支撑判定。
+- Raw/processed/figure source/model output 到 C/R/S/F-id 的文件与哈希映射。
+- Figure contract、单后端纪律、面板证据层级、统计/source data、矢量导出和视觉 QA。
+- 唯一 `MCM_SOURCE_MODEL.yaml`、读者路径、摘要、语言边界、DOCX/PPTX 规格与 officecli 回读。
+- 真实评委/导师反馈的保真拆分、动作映射和证据闭环。
+
+## 未晋升原因
+
+静态校验只能证明结构、自包含路由和元数据正确，不能证明：
+
+- 内置 Nature 流程不会在 74 小时内造成不成比例的负担。
+- 不同数学家族都能从 figure/source/SourceModel 合同获益。
+- 触发边界不会让 T0-T8 同时加载过多上下文。
+- 人类 H-001 至 H-005 的实际干扰成本可接受。
+
+完成一题新问题 discovery、一题不同家族 validation 和人工审查前，不复制到 live skills，不改 workspace source mirror，也不吸收未晋升的 v1.8 deliverable-ledger 变更。
