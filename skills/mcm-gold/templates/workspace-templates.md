@@ -33,10 +33,12 @@
 由 `templates/run_all.py` 从同目录 `RESULTS.jsonl` 生成，不手工改表；复现核对后用 `--confirm` 回填。
 
 ```markdown
-| ID | 内容 | 值/单位 | 输入 SHA-256 | 脚本/命令 | 种子 | 时间 | 图表 | verify | 状态 |
-|---|---|---|---|---|---|---|---|---|---|
-| R-<nnn> | <...> | <...> | <path:hash> | <...> | <...> | <ISO8601> | <...> | <evidence> | PENDING/CONFIRMED/SUSPECT/STALE |
+| ID | 内容 | 值/单位 | 输入 SHA-256 | 脚本/命令 | 种子 | 计算时间 | 核验时间 | 图表 | verify | 状态 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| R-<nnn> | <...> | <...> | <path:hash> | <...> | <...> | <ISO8601> | <ISO8601或空> | <...> | <evidence> | PENDING/CONFIRMED/SUSPECT/STALE |
 ```
+
+**计算时间与核验时间必须分列**：`computed_at` 是这个数被算出来的时刻，`--confirm` 只写 `verified_at`、绝不覆盖 `computed_at`。合成一列会让"数值何时产生"不可考，T8 比对时间戳时失去意义。
 
 ## SOURCES.md
 
