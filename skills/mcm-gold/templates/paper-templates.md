@@ -61,9 +61,14 @@ plt.rcParams["axes.unicode_minus"] = False   # 负号也会变方框
 
 ```markdown
 # 支撑材料说明
-环境=<Python/OS/依赖/求解器及安装命令>｜复现=`python3 run_all.py --all --seed <seed> --state-dir <dir>`｜预计耗时=<实测>
+环境=<Python/OS/依赖/求解器及安装命令>｜预计耗时=<实测>
+复现=解压后 **先进入本目录再执行**：
+    cd <解压目录>
+    python3 run_all.py --all --seed <seed> --state-dir <dir>
 目录=`src/`源程序（`src/MAPPING.md`列公式→文件→函数）、`data/`自主查阅数据、`figures/`图及脚本、`intermediate/`大篇幅中间结果
 ```
+
+**复现命令必须带 `cd`**：入口按相对路径查找 `src/`，评委在解压目录之外执行会直接报"未发现 src/p1.py"，看起来像"代码没交全"——而格式规范第五条把"程序不能运行"列为可能取消评奖资格的情形。README 写法与 T8 清环境复现脚本必须一致。
 
 每个 `src/pN.py` 暴露 `main(seed, log_result)`，登记结果时传 `inputs=[...]`，由入口自动写输入哈希、R-id 与复现命令。
 

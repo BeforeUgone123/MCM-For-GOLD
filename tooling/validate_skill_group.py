@@ -63,12 +63,33 @@ RULES_REQUIRED = [
     "AI 工具使用详情.pdf",
     "核心建模与分析由参赛队主导",
     "逐项人工审查与核实",
+    # 格式规范原文中三条"可能被取消评奖资格"的红线，以及赛区可另提要求的授权条款。
+    # 这些是 T8 复现 Gate 与赛区核验的官方依据，漏收会让终检失去强制力。
+    "程序不能运行",
+    "运行结果与论文不符",
+    "支撑材料文件与论文内容不相符",
+    "各赛区可以对论文做相应的要求",
+    "附录页数不限",
+    # 参赛规则第 5 条点名的平台禁令，必须落成可执行的检索纪律。
+    "csdn.net",
+    "github.com",
+    "检索纪律",
+    # 未快照事实必须显式标注证据等级，避免与已哈希的官方原文混为一谈。
+    "URL_ONLY",
+    "SNAPSHOT+HASH",
 ]
 RULES_FORBIDDEN = [
     "cumcm_ai_2025",
     "参考文献之后",
     "正文已标注 + 参考文献已著录",
 ]
+# rules-2026.md 第七节内嵌的哈希必须与实际 PDF 一致：只校验 OFFICIAL_PDFS 常量的话，
+# 换 PDF 时改了常量却忘改 markdown 表格，静态校验会静默放行。
+STAGE_RULE_LINKS = {
+    "mcm-gold-t0-prepare": ["URL_ONLY", "赛区"],
+    "mcm-gold-t2-formalize": ["检索纪律"],
+    "mcm-gold-t8-submit": ["取消资格红线", "赛区"],
+}
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -101,6 +122,10 @@ def validate() -> list[str]:
         if actual_hash != expected_hash:
             errors.append(
                 f"official source hash mismatch: {filename}: {actual_hash} != {expected_hash}"
+            )
+        if expected_hash not in rules:
+            errors.append(
+                f"rules-2026.md 第七节未登记 {filename} 的实际哈希 {expected_hash}"
             )
 
     for phrase in RULES_REQUIRED:
@@ -146,6 +171,9 @@ def validate() -> list[str]:
             for module in STAGE_NATURE_LINKS[name]:
                 if module not in text:
                     errors.append(f"{name}: embedded Nature module not routed: {module}")
+            for token in STAGE_RULE_LINKS.get(name, []):
+                if token not in text:
+                    errors.append(f"{name}: 2026 合规要点未落到阶段 skill: {token}")
 
         if agent_file.is_file():
             agent_text = agent_file.read_text(encoding="utf-8")

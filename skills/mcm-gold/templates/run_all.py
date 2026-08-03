@@ -14,18 +14,28 @@ import shlex
 import sys
 import time
 
-import numpy as np
-
 STATE_DIR = pathlib.Path("workspace")
 HEADER = (
-    "| ID | 内容 | 值/单位 | 输入 SHA-256 | 脚本/命令 | 种子 | 时间 | 图表 | verify | 状态 |\n"
-    "|---|---|---|---|---|---|---|---|---|---|\n"
+    "| ID | 内容 | 值/单位 | 输入 SHA-256 | 脚本/命令 | 种子 | 计算时间 | 核验时间 | 图表 | verify | 状态 |\n"
+    "|---|---|---|---|---|---|---|---|---|---|---|\n"
 )
 
 
+def _now() -> str:
+    return dt.datetime.now().astimezone().isoformat(timespec="seconds")
+
+
 def set_seed(seed: int) -> None:
+    """固定随机源。numpy 延迟导入：--confirm 等纯记账操作不该被绘图/数值栈的缺失阻断，
+    清环境复现时也不该因为一个模型根本没用到的包而失败在与模型无关的 ImportError 上。"""
     random.seed(seed)
-    np.random.seed(seed)
+    try:
+        import numpy as np
+    except ModuleNotFoundError:
+        print("[WARN] 未安装 numpy：只固定了 random 种子。若模型用到 numpy 随机数，"
+              "本次运行不可复现——先装 numpy 再重跑，不要拿这次结果进论文")
+    else:
+        np.random.seed(seed)
 
 
 def _sha256(path: str) -> str:
@@ -57,7 +67,8 @@ def _append(record: dict) -> None:
         stream.write("# RESULTS\n\n" + HEADER)
         for item in latest.values():
             inputs = ", ".join(f"{p}:{h}" for p, h in item.get("inputs", {}).items())
-            cells = [item.get(k, "") for k in ("id", "name", "value", "_inputs", "command", "seed", "time", "fig", "verify", "status")]
+            cells = [item.get(k, "") for k in ("id", "name", "value", "_inputs", "command", "seed",
+                                               "computed_at", "verified_at", "fig", "verify", "status")]
             cells[3] = inputs
             stream.write("| " + " | ".join(_escape(cell) for cell in cells) + " |\n")
 
@@ -70,7 +81,7 @@ def log_result(rid: str, name: str, value, script: str, seed: int, fig: str | No
     record = {
         "id": rid, "name": name, "value": value, "inputs": input_hashes,
         "command": f"{script} | {shlex.join([sys.executable, *sys.argv])}", "seed": seed,
-        "time": dt.datetime.now().astimezone().isoformat(timespec="seconds"), "fig": fig or "",
+        "computed_at": _now(), "verified_at": "", "fig": fig or "",
         "verify": "", "status": "PENDING",
     }
     _append(record)
@@ -82,14 +93,17 @@ def confirm_result(rid: str, evidence: str, status: str) -> None:
     if not matches:
         raise SystemExit(f"未找到结果 ID: {rid}")
     record = dict(matches[-1])
-    record.update(verify=evidence, status=status,
-                  time=dt.datetime.now().astimezone().isoformat(timespec="seconds"))
+    # 只写核验时间，绝不覆盖 computed_at：反幻觉铁律要求 R-id 关联"这个数是什么时候算出来的"，
+    # 把计算时间改成核验时间会让 T8 的时间戳比对失去意义。
+    record.update(verify=evidence, status=status, verified_at=_now())
     _append(record)
     print(f"[VERIFIED] {rid} -> {status}: {evidence}")
 
 
 def _problem_numbers(all_problems: bool, problem: int | None) -> list[int]:
     if problem is not None:
+        if not pathlib.Path(f"src/p{problem}.py").is_file():
+            raise SystemExit(f"未找到 src/p{problem}.py（当前工作目录 {pathlib.Path.cwd()}）")
         return [problem]
     found = []
     for path in pathlib.Path("src").glob("p*.py"):
@@ -97,7 +111,12 @@ def _problem_numbers(all_problems: bool, problem: int | None) -> list[int]:
         if match:
             found.append(int(match.group(1)))
     if all_problems and not found:
-        raise SystemExit("未发现 src/p1.py、src/p2.py 等问题入口")
+        # 最常见原因不是"没写代码"，而是没先 cd 进支撑包根目录——评委照 README 跑最容易踩这个。
+        raise SystemExit(
+            f"未发现 src/p1.py、src/p2.py 等问题入口。\n"
+            f"当前工作目录：{pathlib.Path.cwd()}\n"
+            f"本脚本按相对路径查找 src/，请先 cd 到支撑包根目录（run_all.py 所在目录）再执行。"
+        )
     return sorted(found)
 
 

@@ -54,9 +54,17 @@ ${CODEX_HOME:-$HOME/.codex}/skills/
 ## 校验
 
 ```bash
-for dir in skills/mcm-gold*; do
-  python3 /home/user/.codex/skills/.system/skill-creator/scripts/quick_validate.py "$dir"
-done
+# 1. 单个 skill 的元数据校验（需要本机装有 skill-creator；路径随 Agent 而变，故用变量）
+SKILL_CREATOR="${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py"
+if [ -f "$SKILL_CREATOR" ]; then
+  for dir in skills/mcm-gold*; do python3 "$SKILL_CREATOR" "$dir"; done
+else
+  echo "跳过 quick_validate：未找到 $SKILL_CREATOR"
+fi
+
+# 2. 本仓库自带的群组校验（无外部依赖，任何平台都应通过）
 python3 tooling/validate_skill_group.py
-sha256sum -c MANIFEST.sha256
+
+# 3. 清单校验（Linux 用 sha256sum，macOS 用 shasum -a 256）
+command -v sha256sum >/dev/null && sha256sum -c MANIFEST.sha256 || shasum -a 256 -c MANIFEST.sha256
 ```
