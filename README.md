@@ -29,6 +29,13 @@
 - `nature-feedback.md`
 - `nature-integrated-playbook.md`
 
+## 可引用书目库
+
+`skills/mcm-gold/references/literature-library.md` 收录五大方法族的经典方法出处
+（60 条，经 Crossref 逐条核验）与 30 篇本地全文清单。它服务于反幻觉铁律第 3 条：
+参考文献必须真实可访问，宁可少引不可编引。前沿方法的出处仍在 `frontier-cards.md` 源列。
+全文 PDF 不随仓库分发，默认置于训练区 `research/papers/`，由 T0 赛前预置。
+
 阶段 skill 只读取本阶段需要的参考文件。优先级为：赛事规则与题面 > MCM 科学 Gate > 内置 Nature 质量规范 > 视觉风格。
 
 ## 安装布局
@@ -67,4 +74,8 @@ python3 tooling/validate_skill_group.py
 
 # 3. 清单校验（Linux 用 sha256sum，macOS 用 shasum -a 256）
 command -v sha256sum >/dev/null && sha256sum -c MANIFEST.sha256 || shasum -a 256 -c MANIFEST.sha256
+
+# 重建清单时基于版本控制内容，不要用文件系统遍历——否则 .DS_Store / __pycache__
+# 这类被 .gitignore 忽略的产物会混进清单，使其随开发机环境漂移
+git ls-files | grep -v '^MANIFEST.sha256$' | sort | xargs shasum -a 256 > MANIFEST.sha256
 ```

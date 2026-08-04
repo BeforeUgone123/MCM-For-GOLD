@@ -83,15 +83,26 @@ RULES_FORBIDDEN = [
     "参考文献之后",
     "正文已标注 + 参考文献已著录",
 ]
-# rules-2026.md 第七节内嵌的哈希必须与实际 PDF 一致：只校验 OFFICIAL_PDFS 常量的话，
-# 换 PDF 时改了常量却忘改 markdown 表格，静态校验会静默放行。
+# 阶段 skill 必须真正落地这些要点，否则规则只停在 references 里没人执行。
 STAGE_RULE_LINKS = {
     "mcm-gold-t0-prepare": ["URL_ONLY", "赛区"],
-    "mcm-gold-t2-formalize": ["检索纪律"],
+    "mcm-gold-t2-formalize": ["检索纪律", "literature-library.md"],
     "mcm-gold-t5-solve": ["非平凡性", "支撑域", "阈值"],
-    "mcm-gold-t7-write": ["支撑域"],
+    "mcm-gold-t7-write": ["支撑域", "literature-library.md"],
     "mcm-gold-t8-submit": ["取消资格红线", "赛区"],
 }
+# 可引用书目库：反幻觉铁律第 3 条要求参考文献真实可访问，书目库是其落地物。
+# 校验它存在、含引用纪律，且五大方法族齐全（与 methods-atlas 对齐）。
+LITERATURE_REQUIRED = [
+    "引用纪律",
+    "不代表你读过这篇文献",
+    "A · 优化与规划",
+    "B · 评价与决策",
+    "C · 预测与时间序列",
+    "D · 分类、聚类与判别",
+    "E · 机理建模与仿真",
+    "本地全文清单",
+]
 # 方案验收层的四条互相依赖：缺"阈值锁定"时，另三条可被事后调阈值架空，
 # 反而产出"已严格验收"的假象。故要求四条同时存在。
 ACCEPTANCE_LAYER_REQUIRED = [
@@ -135,6 +146,7 @@ def validate() -> list[str]:
             errors.append(
                 f"official source hash mismatch: {filename}: {actual_hash} != {expected_hash}"
             )
+        # 只校验 OFFICIAL_PDFS 常量的话，换 PDF 时改了常量却忘改 markdown 表格会静默放行
         if expected_hash not in rules:
             errors.append(
                 f"rules-2026.md 第七节未登记 {filename} 的实际哈希 {expected_hash}"
@@ -155,6 +167,17 @@ def validate() -> list[str]:
     for phrase in ACCEPTANCE_LAYER_REQUIRED:
         if phrase not in gates:
             errors.append(f"adversarial-gates.md 缺方案验收层要点: {phrase}")
+
+    lit_path = SKILLS_ROOT / "mcm-gold" / "references" / "literature-library.md"
+    if not lit_path.is_file():
+        errors.append("missing references/literature-library.md")
+    else:
+        lit = lit_path.read_text(encoding="utf-8")
+        for phrase in LITERATURE_REQUIRED:
+            if phrase not in lit:
+                errors.append(f"literature-library.md 缺要点: {phrase}")
+        if "literature-library.md" not in coordinator:
+            errors.append("coordinator 未在共享参考中列出 literature-library.md")
 
     for module in NATURE_MODULES:
         path = SKILLS_ROOT / "mcm-gold" / "references" / module

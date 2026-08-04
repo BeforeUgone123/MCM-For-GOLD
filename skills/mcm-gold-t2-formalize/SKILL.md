@@ -20,10 +20,11 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 3. **执行[赛事规则](../mcm-gold/references/rules-2026.md)第五节「检索纪律」的禁入域名清单**（参赛规则第 5 条点名 `tieba.baidu.com`、`zhihu.com`、`xiaohongshu.com`、`csdn.net`、`github.com` 等，规则为开放列举，同性质题解/代码分享站同等对待）。官方把**「浏览」本身**判为严重违反竞赛纪律，因此检索命中即算违纪，不是"看了但没用"就没事。开检索前把清单写入 `research/SEARCH_LOG.md` 头部；每条检索记录 `查询词 | 命中域名 | 采用/弃用`；误命中立即关闭、登记 `SEARCH_LOG.md` 与 `RISKS.md`，该页内容不得进入任何产物。需要库文档时改用官方文档站或本地 `pip show` / `help()` / `print(dir(库))`。
 4. 来源分为 A 官方/标准/同行评议、B 机构报告/数据文档、C 博客/论坛/AI 线索。C 级永不作为论文论据。
 5. 对关键事实、参数区间、方法适用条件和失效模式至少做独立来源交叉验证；每条采用事实立即写 S-id。
-6. 先形成来源支持的候选路线矩阵，再建模；禁止模型写完后反向拼引用。
-7. 把可引用文本拆成单一 C-id，提取对象、条件、方向、范围和因果强度；为每个 S-id 标 `strong|partial|background|limiting|metadata-only`。
-8. 标题或元数据相关不等于支撑。采用来源至少核对摘要或正文；`metadata-only` 永不进入论文，限制/冲突来源必须保留。
-9. 用户明确要求 Nature/CNS 时才收窄期刊范围；普通国赛按权威性与适题性选择来源，不把 CNS 当作质量同义词。
+6. 经典方法的出处**先查**[可引用书目](../mcm-gold/references/literature-library.md)（AHP/TOPSIS/ARIMA/K-means 等已逐条核验），前沿方法查[前沿卡](../mcm-gold/references/frontier-cards.md)的源列；两处都没有再联网检索。书目库只保证字段正确，**不代表已读过**——未读过的只能引方法出处，不得转述其结论。
+7. 先形成来源支持的候选路线矩阵，再建模；禁止模型写完后反向拼引用。
+8. 把可引用文本拆成单一 C-id，提取对象、条件、方向、范围和因果强度；为每个 S-id 标 `strong|partial|background|limiting|metadata-only`。
+9. 标题或元数据相关不等于支撑。采用来源至少核对摘要或正文；`metadata-only` 永不进入论文，限制/冲突来源必须保留。
+10. 用户明确要求 Nature/CNS 时才收窄期刊范围；普通国赛按权威性与适题性选择来源，不把 CNS 当作质量同义词。
 
 ## 形式化
 

@@ -5,7 +5,7 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 
 # T7 论文与图表
 
-先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[写作与评分](../mcm-gold/references/rubric-and-writing.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[论文模板](../mcm-gold/templates/paper-templates.md)。从 T4 起滚动写作，不把写作留到最后。
+先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[写作与评分](../mcm-gold/references/rubric-and-writing.md)、[可引用书目](../mcm-gold/references/literature-library.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[论文模板](../mcm-gold/templates/paper-templates.md)。从 T4 起滚动写作，不把写作留到最后。
 
 ## 必需输入
 
@@ -25,11 +25,12 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 8. 凡把模型输出用于新场景/新数据的结论，正文 MUST 给出支撑域比例与被拒绝的外推部分，并写明对域外样本不给结论的理由。诚实标注拒答范围比给出一个域外的漂亮数字更容易得分——后者评委一核对分布就会当场质疑。
 9. 摘要最后写成微型论文：问题/难点、路线、每问具体数值、信任证据、创新和关键边界。所有数字从 R-id 回读。
 10. 逐项核对正文数字 = 图表数字 = `RESULTS.md` 数字，claim 的引用与 `SOURCES.md` 支撑等级对齐，metadata-only 不进入正文。
-11. `paper_format=word` 时，从 SourceModel 建 DocumentSpec，并直接用 `officecli` 生成和回读实际 DOCX；LaTeX 主线不绕到 Office。题面要求 PPTX 时从同一 SourceModel 建 SlideSpec 和实际 PPTX，不停在大纲。
-12. 论文正文不出现训练状态、内部 H/R 编号、责任边界、支撑清单或不可提交横幅；这些只留在论文外工作区。
-13. 在参考文献之前设置 2026 版“AI 工具使用声明”，从实际 `AI_USAGE.md` 二选一回填原文。使用 AI 时生成 `AI 工具使用详情.pdf` 并逐项回读工具名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验及核心建模与分析的队员主导证据；不把 AI 工具列入参考文献，不沿用 2025 版正文逐处标注旧模板。
-14. 若规则要求程序附录，生成完整合规提交版与省略程序的阅读审查版。`paper/main.pdf` 固定为纯论文入口，提交候选显式命名 `*_submission.pdf`。
-15. 依据 rubric 自评，优先修复会妨碍评委 5-15 分钟核查的缺口，不为凑页数填充背景。
+11. 参考文献逐条取自 [`literature-library.md`](../mcm-gold/references/literature-library.md)、前沿卡源列或 `SOURCES.md` 中实际核验过的条目；**禁止凭印象补写卷期页**。环境缺 `bibtex/natbib` 时手写 `thebibliography`，每条著录完成后用 `https://doi.org/<DOI>` 或本地全文实核一次——编造文献按反幻觉铁律视为造假。
+12. `paper_format=word` 时，从 SourceModel 建 DocumentSpec，并直接用 `officecli` 生成和回读实际 DOCX；LaTeX 主线不绕到 Office。题面要求 PPTX 时从同一 SourceModel 建 SlideSpec 和实际 PPTX，不停在大纲。
+13. 论文正文不出现训练状态、内部 H/R 编号、责任边界、支撑清单或不可提交横幅；这些只留在论文外工作区。
+14. 在参考文献之前设置 2026 版“AI 工具使用声明”，从实际 `AI_USAGE.md` 二选一回填原文。使用 AI 时生成 `AI 工具使用详情.pdf` 并逐项回读工具名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验及核心建模与分析的队员主导证据；不把 AI 工具列入参考文献，不沿用 2025 版正文逐处标注旧模板。
+15. 若规则要求程序附录，生成完整合规提交版与省略程序的阅读审查版。`paper/main.pdf` 固定为纯论文入口，提交候选显式命名 `*_submission.pdf`。
+16. 依据 rubric 自评，优先修复会妨碍评委 5-15 分钟核查的缺口，不为凑页数填充背景。
 
 ## 产物
 
@@ -43,6 +44,6 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 
 ## Gate
 
-SourceModel、claim/figure/source-data 台账与论文一致；全文数字可追溯；摘要有具体数值和边界；每问六项齐全；图表经真实渲染核查；引用可访问且支撑等级足够；2026 版 AI 声明位于参考文献之前且与过程记录一致；适用 Office 文件经 `officecli validate/view` 回读；提交版和阅读版不混淆；rubric 无单项低于及格线。live 模式必须由人完成 H-004，否则返回 `NEEDS_HUMAN`。
+SourceModel、claim/figure/source-data 台账与论文一致；全文数字可追溯；摘要有具体数值和边界；每问六项齐全；图表经真实渲染核查；引用可访问且支撑等级足够，每条参考文献可追到书目库、前沿卡源列或已核验 S-id；2026 版 AI 声明位于参考文献之前且与过程记录一致；适用 Office 文件经 `officecli validate/view` 回读；提交版和阅读版不混淆；rubric 无单项低于及格线。live 模式必须由人完成 H-004，否则返回 `NEEDS_HUMAN`。
 
 把最终主张、论文文件哈希、主图状态、H-004、剩余表达风险和 T8 打包白名单写入 `[HANDOFF T7]`。

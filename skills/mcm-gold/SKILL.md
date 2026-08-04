@@ -172,6 +172,7 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 - 阶段交接：`references/stage-contract.md`
 - 证据冻结：`references/evidence-contract.md`
 - 方法和前沿卡：`references/methods-atlas.md`、`references/frontier-cards.md`
+- 可引用书目：`references/literature-library.md`（经典方法出处 + 本地全文；写参考文献时查这里，不要现编）
 - 检验与终检：`references/adversarial-gates.md`
 - 写作与评分：`references/rubric-and-writing.md`
 - 调研和本机 skill 路由：`references/research-and-skill-routing.md`
