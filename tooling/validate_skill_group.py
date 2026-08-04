@@ -88,8 +88,20 @@ RULES_FORBIDDEN = [
 STAGE_RULE_LINKS = {
     "mcm-gold-t0-prepare": ["URL_ONLY", "赛区"],
     "mcm-gold-t2-formalize": ["检索纪律"],
+    "mcm-gold-t5-solve": ["非平凡性", "支撑域", "阈值"],
+    "mcm-gold-t7-write": ["支撑域"],
     "mcm-gold-t8-submit": ["取消资格红线", "赛区"],
 }
+# 方案验收层的四条互相依赖：缺"阈值锁定"时，另三条可被事后调阈值架空，
+# 反而产出"已严格验收"的假象。故要求四条同时存在。
+ACCEPTANCE_LAYER_REQUIRED = [
+    "方案验收层",
+    "性能 + 非平凡性 + 支撑域",
+    "解读由数值生成",
+    "非平凡性",
+    "支撑域",
+    "阈值锁定",
+]
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -136,6 +148,13 @@ def validate() -> list[str]:
             errors.append(f"rules-2026.md contains stale policy text: {phrase}")
     if "cumcm_ai_2026_trial" not in coordinator:
         errors.append("coordinator does not select the 2026 trial AI policy")
+
+    gates = (SKILLS_ROOT / "mcm-gold" / "references" / "adversarial-gates.md").read_text(
+        encoding="utf-8"
+    )
+    for phrase in ACCEPTANCE_LAYER_REQUIRED:
+        if phrase not in gates:
+            errors.append(f"adversarial-gates.md 缺方案验收层要点: {phrase}")
 
     for module in NATURE_MODULES:
         path = SKILLS_ROOT / "mcm-gold" / "references" / module
