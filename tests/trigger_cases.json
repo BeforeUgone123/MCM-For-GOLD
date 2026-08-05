@@ -1,0 +1,13 @@
+[
+  {"target": "mcm-gold", "prompt": "恢复昨天的数模工作区，告诉我当前阶段和唯一下一步。"},
+  {"target": "mcm-gold", "prompt": "从读题到提交完整推进这次 CUMCM 赛题。"},
+  {"target": "mcm-gold-t0-prepare", "prompt": "赛前检查 Python、LaTeX、字体、求解器和复现环境。"},
+  {"target": "mcm-gold-t1-select", "prompt": "拆解 A、B、C 三题并形成可审计的选题矩阵。"},
+  {"target": "mcm-gold-t2-formalize", "prompt": "把所选题逐问形式化，给出变量、约束和主备路线。"},
+  {"target": "mcm-gold-t3-audit-data", "prompt": "检查附件中的缺失值、结构性零、时间泄漏和单位口径。"},
+  {"target": "mcm-gold-t4-baseline", "prompt": "先为第一问做一个笨但正确、可以复现的基线。"},
+  {"target": "mcm-gold-t5-solve", "prompt": "在同预算基线下完成主模型求解和创新对照。"},
+  {"target": "mcm-gold-t6-validate", "prompt": "对模型做敏感性、误差、稳健性和复现红队。"},
+  {"target": "mcm-gold-t7-write", "prompt": "把已确认结果组织成摘要、正文、主图和提交版论文。"},
+  {"target": "mcm-gold-t8-submit", "prompt": "冻结论文并执行匿名、复现、打包和提交前终检。"}
+]

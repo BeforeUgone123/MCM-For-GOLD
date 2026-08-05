@@ -58,6 +58,13 @@ ${CODEX_HOME:-$HOME/.codex}/skills/
 
 当前候选已把新 AI 声明、固定详情文件名、人工核验责任和论文/支撑材料格式同步到 T7、T8、模板与 Gate。开赛前 24 小时仍须重新核验官网最新发布，发现冲突时以届时官方原文为准。
 
+## 许可边界
+
+仓库原创代码、skill 指令、模板和文档采用 MIT License。`sources/official/2026/`
+中的官方规则 PDF 是第三方原文快照，**不在 MIT 授权范围内**；权利仍归原权利人。
+具体说明见 `THIRD_PARTY_NOTICES.md`。再次分发这些 PDF 前须核验官方条款；不能确认
+转载许可时，应移除 PDF，只保留官方链接与预期哈希，并将快照校验标为不可用。
+
 ## 校验
 
 ```bash
@@ -72,10 +79,17 @@ fi
 # 2. 本仓库自带的群组校验（无外部依赖，任何平台都应通过）
 python3 tooling/validate_skill_group.py
 
-# 3. 清单校验（Linux 用 sha256sum，macOS 用 shasum -a 256）
+# 3. 自动化回归测试
+python3 -m unittest discover -s tests -v
+
+# 4. 清单校验（Linux 用 sha256sum，macOS 用 shasum -a 256）
 command -v sha256sum >/dev/null && sha256sum -c MANIFEST.sha256 || shasum -a 256 -c MANIFEST.sha256
 
 # 重建清单时基于版本控制内容，不要用文件系统遍历——否则 .DS_Store / __pycache__
 # 这类被 .gitignore 忽略的产物会混进清单，使其随开发机环境漂移
-git ls-files | grep -v '^MANIFEST.sha256$' | sort | xargs shasum -a 256 > MANIFEST.sha256
+git ls-files | grep -v '^MANIFEST.sha256$' | LC_ALL=C sort -f | xargs shasum -a 256 > MANIFEST.sha256
 ```
+
+`tests/trigger_cases.json` 是前向触发评估样本，不是静态校验通过的替代品。晋升前须在
+实际 Codex 环境逐条运行，记录目标 skill 是否唯一触发、兄弟 skill 是否正确交接以及
+上下文负担；未经这一步不得宣称阶段路由已完成行为验证。

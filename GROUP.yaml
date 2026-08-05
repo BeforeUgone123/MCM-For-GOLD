@@ -1,10 +1,10 @@
 schema_version: 2
 repository: "https://github.com/BeforeUgone123/MCM-For-GOLD"
-candidate: "v2.2-2026-rules-ingested"
+candidate: "v2.3-hardening-candidate"
 status: "CANDIDATE_NOT_LIVE"
 base:
-  candidate: "v2.1-embedded-nature-stage-group"
-  git_commit: "1d566802bc349b5f0ae5d460288fa67d84345b19"
+  candidate: "v2.2-2026-rules-ingested"
+  git_commit: "338c2b01263ae27eeb32bde9666f71e431f49fd8"
   live_ancestor: "v1.7-nature-adapter"
   excludes_unpromoted_candidate: "v1.8-deliverable-closure-candidate"
 layout: "skills/atomic-sibling-group"

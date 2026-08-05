@@ -2,6 +2,7 @@
 """一键复现入口：运行 src/pN.py，并生成可审计的 RESULTS.jsonl/RESULTS.md。"""
 
 import argparse
+import contextlib
 import datetime as dt
 import hashlib
 import importlib
@@ -50,7 +51,7 @@ def _escape(value) -> str:
     return json.dumps(value, ensure_ascii=False, default=str).strip('"').replace("|", "\\|").replace("\n", " ")
 
 
-def _records() -> list[dict]:
+def _records_unlocked() -> list[dict]:
     path = STATE_DIR / "RESULTS.jsonl"
     if not path.exists():
         return []
@@ -58,25 +59,90 @@ def _records() -> list[dict]:
         return [json.loads(line) for line in stream if line.strip()]
 
 
-def _append(record: dict) -> None:
+@contextlib.contextmanager
+def _state_lock(timeout: float = 30.0):
+    """Serialize ledger updates across parallel stage processes."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    with (STATE_DIR / "RESULTS.jsonl").open("a", encoding="utf-8") as stream:
-        stream.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
-    latest = {item["id"]: item for item in _records()}
-    with (STATE_DIR / "RESULTS.md").open("w", encoding="utf-8") as stream:
-        stream.write("# RESULTS\n\n" + HEADER)
-        for item in latest.values():
-            inputs = ", ".join(f"{p}:{h}" for p, h in item.get("inputs", {}).items())
-            cells = [item.get(k, "") for k in ("id", "name", "value", "_inputs", "command", "seed",
-                                               "computed_at", "verified_at", "fig", "verify", "status")]
-            cells[3] = inputs
-            stream.write("| " + " | ".join(_escape(cell) for cell in cells) + " |\n")
+    lock_stream = (STATE_DIR / ".results.lock").open("a+b")
+    if lock_stream.tell() == 0:
+        lock_stream.write(b"0")
+        lock_stream.flush()
+    deadline = time.monotonic() + timeout
+    acquired = False
+    try:
+        while not acquired:
+            try:
+                if os.name == "nt":
+                    import msvcrt
+
+                    lock_stream.seek(0)
+                    msvcrt.locking(lock_stream.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+
+                    fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+            except (BlockingIOError, OSError):
+                if time.monotonic() >= deadline:
+                    raise SystemExit(f"等待结果台账锁超时：{STATE_DIR / '.results.lock'}")
+                time.sleep(0.05)
+        yield
+    finally:
+        if acquired:
+            if os.name == "nt":
+                import msvcrt
+
+                lock_stream.seek(0)
+                msvcrt.locking(lock_stream.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
+        lock_stream.close()
+
+
+def _records() -> list[dict]:
+    with _state_lock():
+        return _records_unlocked()
+
+
+def _write_markdown(records: list[dict]) -> None:
+    latest = {item["id"]: item for item in records}
+    target = STATE_DIR / "RESULTS.md"
+    temporary = STATE_DIR / f".RESULTS.md.{os.getpid()}.{time.time_ns()}.tmp"
+    try:
+        with temporary.open("w", encoding="utf-8") as stream:
+            stream.write("# RESULTS\n\n" + HEADER)
+            for item in latest.values():
+                inputs = ", ".join(f"{p}:{h}" for p, h in item.get("inputs", {}).items())
+                cells = [item.get(k, "") for k in ("id", "name", "value", "_inputs", "command", "seed",
+                                                   "computed_at", "verified_at", "fig", "verify", "status")]
+                cells[3] = inputs
+                stream.write("| " + " | ".join(_escape(cell) for cell in cells) + " |\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _append(record: dict, *, reject_existing: bool = False) -> None:
+    with _state_lock():
+        records = _records_unlocked()
+        if reject_existing and any(item["id"] == record["id"] for item in records):
+            raise SystemExit(
+                f"结果 ID {record['id']} 已存在：复现请使用空 state_dir；"
+                "新计算请换新 R-id 并登记 SUPERSEDED"
+            )
+        with (STATE_DIR / "RESULTS.jsonl").open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        _write_markdown([*records, record])
 
 
 def log_result(rid: str, name: str, value, script: str, seed: int, fig: str | None = None,
                inputs: list[str] | None = None) -> None:
-    if any(record["id"] == rid for record in _records()):
-        raise SystemExit(f"结果 ID {rid} 已存在：复现请使用空 state_dir；新计算请换新 R-id 并登记 SUPERSEDED")
     input_hashes = {path: _sha256(path) for path in (inputs or [])}
     record = {
         "id": rid, "name": name, "value": value, "inputs": input_hashes,
@@ -84,19 +150,25 @@ def log_result(rid: str, name: str, value, script: str, seed: int, fig: str | No
         "computed_at": _now(), "verified_at": "", "fig": fig or "",
         "verify": "", "status": "PENDING",
     }
-    _append(record)
+    _append(record, reject_existing=True)
     print("[LOGGED]", json.dumps(record, ensure_ascii=False, default=str))
 
 
 def confirm_result(rid: str, evidence: str, status: str) -> None:
-    matches = [record for record in _records() if record["id"] == rid]
-    if not matches:
-        raise SystemExit(f"未找到结果 ID: {rid}")
-    record = dict(matches[-1])
-    # 只写核验时间，绝不覆盖 computed_at：反幻觉铁律要求 R-id 关联"这个数是什么时候算出来的"，
-    # 把计算时间改成核验时间会让 T8 的时间戳比对失去意义。
-    record.update(verify=evidence, status=status, verified_at=_now())
-    _append(record)
+    with _state_lock():
+        records = _records_unlocked()
+        matches = [record for record in records if record["id"] == rid]
+        if not matches:
+            raise SystemExit(f"未找到结果 ID: {rid}")
+        record = dict(matches[-1])
+        # 只写核验时间，绝不覆盖 computed_at：反幻觉铁律要求 R-id 关联"这个数是什么时候算出来的"，
+        # 把计算时间改成核验时间会让 T8 的时间戳比对失去意义。
+        record.update(verify=evidence, status=status, verified_at=_now())
+        with (STATE_DIR / "RESULTS.jsonl").open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        _write_markdown([*records, record])
     print(f"[VERIFIED] {rid} -> {status}: {evidence}")
 
 

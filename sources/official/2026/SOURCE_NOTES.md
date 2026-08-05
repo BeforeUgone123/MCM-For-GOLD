@@ -2,6 +2,9 @@
 
 吸收日期：2026-08-03。原始 PDF 由用户放入 Math 工作区；本目录保留按内容重命名的字节级副本，未改写 PDF。
 
+这些 PDF 是第三方官方文件，不适用本仓库的 MIT License；参见仓库根目录
+`THIRD_PARTY_NOTICES.md`。本目录的留存与哈希登记不构成对文件的再授权。
+
 | 仓库文件 | 原始文件名 | 标题 | 页数 | SHA-256 |
 |---|---|---|---:|---|
 | `cumcm-participation-rules-2026.pdf` | `FlQt6kJV6f5d5b4603e06c3c60acf89b72d7f298.pdf` | 全国大学生数学建模竞赛参赛规则（2026 年修订稿） | 1 | `46d3837906bfd7049eb04c40cfc8b8436912d7edae98462ba064abfa381a8d3a` |

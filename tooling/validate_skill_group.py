@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -74,6 +75,7 @@ RULES_REQUIRED = [
     "csdn.net",
     "github.com",
     "检索纪律",
+    "live 模式禁止通用网页查重",
     # 未快照事实必须显式标注证据等级，避免与已哈希的官方原文混为一谈。
     "URL_ONLY",
     "SNAPSHOT+HASH",
@@ -86,7 +88,7 @@ RULES_FORBIDDEN = [
 # 阶段 skill 必须真正落地这些要点，否则规则只停在 references 里没人执行。
 STAGE_RULE_LINKS = {
     "mcm-gold-t0-prepare": ["URL_ONLY", "赛区"],
-    "mcm-gold-t2-formalize": ["检索纪律", "literature-library.md"],
+    "mcm-gold-t2-formalize": ["检索纪律", "强制域名白名单", "literature-library.md"],
     "mcm-gold-t5-solve": ["非平凡性", "支撑域", "阈值"],
     "mcm-gold-t7-write": ["支撑域", "literature-library.md"],
     "mcm-gold-t8-submit": ["取消资格红线", "赛区"],
@@ -96,6 +98,7 @@ STAGE_RULE_LINKS = {
 LITERATURE_REQUIRED = [
     "引用纪律",
     "不代表你读过这篇文献",
+    "文献题名",
     "A · 优化与规划",
     "B · 评价与决策",
     "C · 预测与时间序列",
@@ -103,6 +106,7 @@ LITERATURE_REQUIRED = [
     "E · 机理建模与仿真",
     "本地全文清单",
 ]
+DOI_RE = re.compile(r"^10\.\d{4,9}/[-._;()/:A-Z0-9]+$", re.IGNORECASE)
 # 方案验收层的四条互相依赖：缺"阈值锁定"时，另三条可被事后调阈值架空，
 # 反而产出"已严格验收"的假象。故要求四条同时存在。
 ACCEPTANCE_LAYER_REQUIRED = [
@@ -176,6 +180,18 @@ def validate() -> list[str]:
         for phrase in LITERATURE_REQUIRED:
             if phrase not in lit:
                 errors.append(f"literature-library.md 缺要点: {phrase}")
+        bibliography = lit.split("## 本地全文清单", 1)[0]
+        if "…" in bibliography:
+            errors.append("literature-library.md 书目字段含省略号，不能生成完整引用")
+        for line_number, line in enumerate(bibliography.splitlines(), start=1):
+            if not line.startswith("|") or "`10." not in line:
+                continue
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            doi = cells[-2].strip("`")
+            if not DOI_RE.fullmatch(doi):
+                errors.append(
+                    f"literature-library.md:{line_number} DOI 不完整或不可解析: {doi}"
+                )
         if "literature-library.md" not in coordinator:
             errors.append("coordinator 未在共享参考中列出 literature-library.md")
 
@@ -240,6 +256,32 @@ def validate() -> list[str]:
             errors.append(f"GROUP.yaml missing {name}")
     if "external_nature_skill_dependency: false" not in manifest:
         errors.append("GROUP.yaml does not declare embedded Nature self-containment")
+
+    notice_path = REPO_ROOT / "THIRD_PARTY_NOTICES.md"
+    if not notice_path.is_file():
+        errors.append("missing THIRD_PARTY_NOTICES.md for official PDF snapshots")
+    else:
+        notice = notice_path.read_text(encoding="utf-8")
+        for phrase in ("sources/official/2026/", "not covered", "rights holders"):
+            if phrase not in notice:
+                errors.append(f"THIRD_PARTY_NOTICES.md missing licensing boundary: {phrase}")
+
+    trigger_path = REPO_ROOT / "tests" / "trigger_cases.json"
+    if not trigger_path.is_file():
+        errors.append("missing tests/trigger_cases.json")
+    else:
+        try:
+            trigger_cases = json.loads(trigger_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"invalid tests/trigger_cases.json: {exc}")
+        else:
+            covered = {case.get("target") for case in trigger_cases if isinstance(case, dict)}
+            missing = set(EXPECTED) - covered
+            unknown = covered - set(EXPECTED)
+            if missing:
+                errors.append(f"trigger matrix missing skills: {sorted(missing)}")
+            if unknown:
+                errors.append(f"trigger matrix contains unknown skills: {sorted(unknown)}")
     return errors
 
 

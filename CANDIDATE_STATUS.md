@@ -1,8 +1,16 @@
-# V2.2 2026 规则已吸收的内置 Nature 阶段 Skill 群
+# V2.3 工程与合规加固候选
 
 状态：`CANDIDATE_NOT_LIVE`。
 
-本仓库以已提交的 v2.1 内置 Nature 阶段 skill 群为基线，把用户提供的三份 CUMCM 2026 官方细则原文、哈希、执行规则、模板与终检门禁吸收到总控和 T7/T8。运行时不调用任何额外 `nature-*` skill。
+本候选以 v2.2 规则吸收版本为基线，修复书目字段截断、live 通用网页查重冲突和并发结果台账竞态，补入可重复执行的仓库测试，并澄清第三方官方 PDF 不属于 MIT 授权范围。运行时不调用任何额外 `nature-*` skill。
+
+## 2026-08-05 加固
+
+- `literature-library.md` 的 60 条书目补齐文献题名、完整作者、出处和 DOI/稳定标识；校验器拒绝省略号和不可解析 DOI。
+- live 模式不再用通用搜索引擎做连通性探针或逐段查重；只直接访问安全 URL、强制域名白名单接口、赛事认可查重系统或本地语料。
+- `run_all.py` 为 `RESULTS.jsonl`/`RESULTS.md` 增加跨进程锁、重复 R-id 原子检查、`fsync` 和 Markdown 原子替换。
+- `tests/` 覆盖书目完整性、群组结构、清单、第三方声明、并发重复 ID、并行写入和核验时间戳；`trigger_cases.json` 固化人工前向触发样本。
+- `THIRD_PARTY_NOTICES.md` 明确官方规则快照不适用 MIT License；再次分发仍须由发布者确认官方条款。
 
 ## 2026 规则快照
 

@@ -15,9 +15,9 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 
 ## 情报协议
 
-1. 实际发起一次检索并读取返回，确认联网能力。不可用时设置 `research.online=false`，只使用题面、附件和队伍已有且可核验资料。
+1. 用**直接访问官方首页、DOI 或库官方文档 URL**确认联网能力，不用通用搜索引擎做连通性探针。不可用时设置 `research.online=false`，只使用题面、附件和队伍已有且可核验资料。
 2. live 竞赛期间只检索标准、数据、论文和官方口径；不浏览、发布或讨论本届赛题的解析、代码和交流内容。
-3. **执行[赛事规则](../mcm-gold/references/rules-2026.md)第五节「检索纪律」的禁入域名清单**（参赛规则第 5 条点名 `tieba.baidu.com`、`zhihu.com`、`xiaohongshu.com`、`csdn.net`、`github.com` 等，规则为开放列举，同性质题解/代码分享站同等对待）。官方把**「浏览」本身**判为严重违反竞赛纪律，因此检索命中即算违纪，不是"看了但没用"就没事。开检索前把清单写入 `research/SEARCH_LOG.md` 头部；每条检索记录 `查询词 | 命中域名 | 采用/弃用`；误命中立即关闭、登记 `SEARCH_LOG.md` 与 `RISKS.md`，该页内容不得进入任何产物。需要库文档时改用官方文档站或本地 `pip show` / `help()` / `print(dir(库))`。
+3. **执行[赛事规则](../mcm-gold/references/rules-2026.md)第五节「检索纪律」的禁入域名清单**（参赛规则第 5 条点名 `tieba.baidu.com`、`zhihu.com`、`xiaohongshu.com`、`csdn.net`、`github.com` 等，规则为开放列举，同性质题解/代码分享站同等对待）。live 模式只允许直接访问已判定安全的官方/标准/论文/数据 URL，或使用能在请求前强制域名白名单的检索接口；工具不能强制白名单时，不做开放网页检索。开检索前把白名单、禁入域名和直接 URL 写入 `research/SEARCH_LOG.md`；误开禁入页面时立即关闭、登记 `SEARCH_LOG.md` 与 `RISKS.md`，该页内容不得进入任何产物。需要库文档时改用官方文档站或本地 `pip show` / `help()` / `print(dir(库))`。
 4. 来源分为 A 官方/标准/同行评议、B 机构报告/数据文档、C 博客/论坛/AI 线索。C 级永不作为论文论据。
 5. 对关键事实、参数区间、方法适用条件和失效模式至少做独立来源交叉验证；每条采用事实立即写 S-id。
 6. 经典方法的出处**先查**[可引用书目](../mcm-gold/references/literature-library.md)（AHP/TOPSIS/ARIMA/K-means 等已逐条核验），前沿方法查[前沿卡](../mcm-gold/references/frontier-cards.md)的源列；两处都没有再联网检索。书目库只保证字段正确，**不代表已读过**——未读过的只能引方法出处，不得转述其结论。
