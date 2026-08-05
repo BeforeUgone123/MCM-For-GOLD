@@ -1,8 +1,28 @@
-# V2.3 工程与合规加固候选
+# V2.4 论文闭环晋升记录
 
-状态：`CANDIDATE_NOT_LIVE`。
+状态：`PROMOTED_TO_LIVE_2026-08-05`。
 
-本候选以 v2.2 规则吸收版本为基线，修复书目字段截断、live 通用网页查重冲突和并发结果台账竞态，补入可重复执行的仓库测试，并澄清第三方官方 PDF 不属于 MIT 授权范围。运行时不调用任何额外 `nature-*` skill。
+本版本以 v2.3 工程加固版本为基线，针对“写作规则已经存在但 T7/T8 没有消费和验收”的根因增加机器可执行的论文闭环。2026-08-05 经用户明确授权晋升为本地 live 并发布；冻结回放与历史评分不变。
+
+晋升决策将已知题 post-hoc Gate 作为上线前机器证据，并明确接受尚未完成的 forward discovery/validation 风险。这些项目转为上线后验证债，不得因已发布而追认为已验证。
+
+## 2026-08-05 论文闭环
+
+- **CC-032 逐问论证验收**：新增 `PAPER_COVERAGE_LEDGER.csv`。每问固定登记题意接口、数学定义、求解步骤、结果、验证和解释边界，必须回读实际阅读版 PDF 锚点并映射 C/K/R/P/V/D-id；`WEAK/MISSING` 不能继续伪装通过。
+- **固定七维 rubric**：新增机器读取的 `T7_RUBRIC_REVIEW.csv`，只接受 `rubric-and-writing.md` 的七个维度。总分低于配置目标或单项低于及格线时返回 `NEEDS_EXPANSION`，不再允许自创四维评分表。
+- **CC-033 双版本闭环**：阅读版和提交版从同一科学正文生成；提交版必须有最终支撑目录的真实文件列表和完整源程序，且 T8 禁止把 `main.pdf` 重命名成提交版。
+- **确定性校验器**：`templates/verify_paper_contract.py` 回读账本、rubric、PDF 正文锚点、双版本一致性、支撑清单与代码内容；短于建议页数只给 `DEPTH_REVIEW_REQUIRED`，页数本身不判失败。
+- **状态上限**：结构与机器检查不能替代 H-004/H-005。无人演练最高为 `PROXY_REHEARSAL`；缺人类验收为 `NEEDS_HUMAN`。
+
+当前 2024 A v2.3 产物仅用于已暴露问题的红灯回归，不计独立盲测。已知题 post-hoc Gate 见下；未完成的新问题 T7-T8 discovery、不同家族 forward validation、H-004/H-005 和实际记账耗时已登记为上线后验证债。
+
+### 2026-08-05 跨题 post-hoc Gate
+
+- `B-2022-C-001`：原 8 页正文以 16 个 `WEAK` 覆盖项、合规单项 2/3 和总分 86/100 返回 `NEEDS_EXPANSION`；18 页证据扩写版以 24/24 覆盖、89/100 proxy、91/91 支撑文件和 24/24 源程序达到 `PROXY_REHEARSAL`。冻结 86 分和 H 状态未改。
+- `B-2019-D-001`：18 页正文以 18/18 覆盖、89/100 proxy、0 error/0 warning 达到 `PROXY_REHEARSAL`，证明页数没有被当作质量配额；该测试不清除既有亚小时物理交付缺口。
+- 实测发现 PDF 中同一 maxT 公式可能被 `pdftotext` 以不同字符顺序回读。校验器现仅在字符集合完全一致且相似度至少 0.995 时降为 `PDF_TEXT_ORDER_VARIANCE` 警告；否则仍报正文漂移。
+
+以上满足已知题的红灯、修复和页数负对照，只是 post-hoc regression，不是新的 forward discovery/validation。上线后验证债仍包括一题新问题 T7-T8 discovery、另一题不同家族 forward validation、H-004/H-005 和实际记账耗时。
 
 ## 2026-08-05 加固
 
@@ -49,7 +69,7 @@
 - `GROUP.yaml`：仓库 URL 修正（此前尾部多一个 `-`）。
 - 前沿方法的 8 条使用纪律与选卡索引表此前在 `methods-atlas.md` 第五节和 `frontier-cards.md` 第 0 节**逐字重复**，改一处忘另一处即不一致。现改为单点维护：纪律以 `frontier-cards.md` 为准（atlas 只留三条最易踩的红线摘要 + 指针），选卡索引以 `methods-atlas.md` 为准（cards 改为指回）。
 
-## 未晋升原因
+## 上线后验证债
 
 静态校验只能证明结构、自包含路由和元数据正确，不能证明：
 
@@ -58,4 +78,4 @@
 - 触发边界不会让 T0-T8 同时加载过多上下文。
 - 人类 H-001 至 H-005 的实际干扰成本可接受。
 
-完成一题新问题 discovery、一题不同家族 validation 和人工审查前，不复制到 live skills，不改 workspace source mirror，也不吸收未晋升的 v1.8 deliverable-ledger 变更。
+本次晋升不吸收未晋升的 v1.8 deliverable-ledger 变更。`GROUP.yaml` 登记的前向 Gate、人工审查和耗时审计必须继续记录；未完成前不得宣称 v2.4 已取得跨新题完整行为验证。

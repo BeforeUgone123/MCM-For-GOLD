@@ -30,6 +30,13 @@
 
 **创新加权**：未达 `innovation_quota` 时，「模型建立」维度**扣 5 分**（创新性是官方四原则之一，不可缺席）。
 
+### 验收落地
+
+- 把七维逐项写入 `T7_RUBRIC_REVIEW.csv`，列固定为 `dimension,score,max_score,pass_score,evidence,observed,status`；证据必须指向实际页、图、表或检查记录。
+- 总分低于 `CONFIG.target.rubric_threshold` 或任一维低于及格线，只能路由 `NEEDS_EXPANSION`，不得把“接近目标”写成 `PASS`。
+- 同步维护 `PAPER_COVERAGE_LEDGER.csv`：每问 `interface/definition/algorithm/result/validation/boundary` 六行均可在阅读版 PDF 检索，并映射 C/K/R/P/V/D-id。
+- 页数只产生诊断：短文触发人工检查是否压掉推导、结果、验证或边界；六项证据完整的简洁小问不得仅因页数被否，缺证据也不得靠扩句、贴代码或重复背景补齐。
+
 ### 分级判据
 
 | 论文形态 | 典型归宿 |

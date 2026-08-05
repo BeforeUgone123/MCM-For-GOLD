@@ -121,6 +121,8 @@ deliverables/
 - [ ] 六类检验均有 R-id 证据；不适用项有 D-log 的 `N/A + 原因 + 替代检查`
 - [ ] 创新点 ≥ `innovation_quota` 且在摘要点名
 - [ ] `CLAIM_LEDGER.csv` 中进入摘要/正文的条目都有 R/S/F-id，状态达到正式 `confirmed` 或演练 `rehearsal_confirmed`
+- [ ] `PAPER_COVERAGE_LEDGER.csv` 每问恰有 interface/definition/algorithm/result/validation/boundary 六行，无 `WEAK/MISSING`；非 N/A 锚点均能在实际 `main.pdf` 回读，validation 关联主要 K-id 与 R/P/V-id
+- [ ] `T7_RUBRIC_REVIEW.csv` 使用固定七维、总分达到 `CONFIG.target.rubric_threshold` 且无单项低于及格线；未用自创四维表绕过
 - [ ] H-001 至 H-004 的适用项已由人确认；演练若为 `PROXY_REHEARSAL`，交付状态明确写“非正式提交”
 
 ### 一致性
@@ -130,6 +132,8 @@ deliverables/
 - [ ] 参考文献编号与正文标注一一对应，条目真实可访问
 - [ ] 参考文献之前存在 2026 版“AI 工具使用声明”；使用 AI 时支撑包含文件名完全一致的 `AI 工具使用详情.pdf`
 - [ ] AI 参与内容有逐项人工审查与核实证据，核心建模与分析有参赛队主导记录；未沿用 2025 版正文标注/AI 参考文献旧模板作为强制项
+- [ ] 阅读版 `main.pdf` 与显式 `*_submission.pdf` 由同一科学正文源生成，正文回读一致；提交白名单不含 `main.pdf`
+- [ ] 提交版的支撑材料文件列表来自最终目录实际遍历，且完整源程序逐文件嵌入；缺列表、只列文件名或缺代码均为硬失败
 
 ### 机器可检
 - [ ] 正文页数 ≤30 且无目录（**附录页数不限**，不必为页数删代码）
@@ -167,6 +171,7 @@ pdffonts "$paper"                                                # emb 列逐行
 pdftotext -layout "$paper" - | awk 'BEGIN{RS="\f"} /附录/{print "附录起始PDF页=" NR; exit}' # 应 ≤32
 for p in $(seq 1 "$(pdfinfo "$paper" | awk '/^Pages:/{print $2}')"); do printf '%s: ' "$p"; pdftotext -f "$p" -l "$p" -layout "$paper" - | tail -n 4 | tr '\n' ' '; echo; done # 核页码连续
 unzip -t "$support"                                               # 压缩包完整性
+python3 <skills-root>/mcm-gold/templates/verify_paper_contract.py --coverage workspace/PAPER_COVERAGE_LEDGER.csv --rubric workspace/T7_RUBRIC_REVIEW.csv --reader paper/main.pdf --submission paper/<problem>_submission.pdf --support-root deliverables/staging/support --source-root deliverables/staging/support/src --output workspace/T8_PAPER_CONTRACT.json
 grep -rInI -iE "学校|大学|学院|姓名|指导教师|队号|/Users/|/home/" deliverables/staging/support/
 exiftool "$paper" | grep -iE "author|creator|producer|title"
 exiftool -r deliverables/staging/support/figures/ | grep -iE "author|comment|software"

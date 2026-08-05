@@ -40,10 +40,30 @@ class RepositoryIntegrityTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_manifest_matches_tracked_files(self) -> None:
+        listed: set[str] = set()
         for line in (ROOT / "MANIFEST.sha256").read_text(encoding="utf-8").splitlines():
             expected, relative = line.split("  ", 1)
+            listed.add(relative)
             actual = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
             self.assertEqual(actual, expected, relative)
+        # Linked worktrees store .git as a pointer file rather than a directory.
+        if (ROOT / ".git").exists():
+            result = subprocess.run(
+                ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+            )
+            expected_files = {
+                item for item in result.stdout.splitlines() if item != "MANIFEST.sha256"
+            }
+        else:
+            expected_files = {
+                path.relative_to(ROOT).as_posix()
+                for path in ROOT.rglob("*")
+                if path.is_file()
+                and path.name not in {"MANIFEST.sha256", ".DS_Store"}
+                and path.suffix != ".pyc"
+                and "__pycache__" not in path.parts
+            }
+        self.assertEqual(listed, expected_files)
 
     def test_third_party_snapshots_are_excluded_from_mit_notice(self) -> None:
         notice = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")

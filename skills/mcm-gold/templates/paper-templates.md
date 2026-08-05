@@ -87,6 +87,28 @@ plt.rcParams["axes.unicode_minus"] = False   # 负号也会变方框
 
 正式提交版随后列“附录 B 源程序”，粘贴全部完整、可运行代码；同时生成省略合规材料和程序附录的阅读审查版。`paper/main.pdf`固定为纯论文默认入口，提交候选用`*_submission.pdf`显式命名；阅读版正文与科学附录保持正赛论文形态，不插入训练说明、内部编号、责任边界或“不可提交”横幅；不可提交状态仅在文件名、论文外 README 和打包白名单标识。默认预览、逐页截图和 H-004 审表达均看阅读版；文件列表须由打包目录实际遍历生成，禁止手写猜测。
 
+两版必须从同一科学正文生成，禁止复制后分别修改：
+
+```text
+paper/body.tex                 # 摘要到参考文献，唯一科学正文源
+paper/main.tex                 # 只 input body.tex，生成 main.pdf
+paper/<problem>_submission.tex # input body.tex，再接实际文件列表和完整源程序
+```
+
+```latex
+% main.tex
+\input{body.tex}
+
+% <problem>_submission.tex（body.tex 结束后）
+\input{body.tex}
+\section*{附录 A\quad 支撑材料文件列表}
+% 表格必须由最终支撑目录遍历生成
+\section*{附录 B\quad 完整源程序}
+\lstinputlisting[title={src/p1.py}]{../support/src/p1.py}
+```
+
+最终 PDF 必须执行 `templates/verify_paper_contract.py`：它回读阅读版锚点、七维 rubric、两版共享正文、实际文件列表和代码内容。阅读版页数明显偏短只触发 `DEPTH_REVIEW_REQUIRED` 人工复核，不能成为单独判失败或填充文字/代码的理由；缺提交版、文件列表或完整代码则为契约硬失败。
+
 无程序时写明「本论文没有用到程序」；无支撑材料时写明「本论文没有支撑材料」。
 
 ---

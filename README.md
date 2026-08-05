@@ -4,6 +4,8 @@
 
 本项目与 Nature Portfolio 无官方关联。“Nature”表示高影响力科学传播中的论证与质量控制方法，赛事规则、题面和科学正确性始终优先。
 
+当前版本是 `v2.4-paper-closure`，新增逐问论文覆盖账本、固定七维 rubric、同源阅读/提交双版本和 `verify_paper_contract.py`。已知题红灯、修复和页数负对照已实测；2026-08-05 经用户明确授权晋升为 live，未完成的前向 Gate 作为上线后验证债保留。
+
 ## Skill 群
 
 | Skill | 阶段 | 专长 |
@@ -50,13 +52,13 @@ ${CODEX_HOME:-$HOME/.codex}/skills/
   mcm-gold-t8-submit/
 ```
 
-当前版本仍是候选，不应直接覆盖 live skill。先完成 `CANDIDATE_STATUS.md` 中的跨题验证和人工审查。
+当前版本已晋升为 live。十个 skill 必须保持同级安装；发布状态、已验证项和上线后验证债见 `CANDIDATE_STATUS.md` 与 `GROUP.yaml`。
 
 ## 2026 官方规则快照
 
 用户提供的三份 2026 细则按内容重命名后保存在 `sources/official/2026/`，PDF 字节未改写，并由 `SOURCE_PDFS.sha256` 单独锁定：参赛规则、AI 工具使用规定、论文格式规范。可执行摘要在 `skills/mcm-gold/references/rules-2026.md`；摘要不替代原文，争议条款必须回查 PDF。
 
-当前候选已把新 AI 声明、固定详情文件名、人工核验责任和论文/支撑材料格式同步到 T7、T8、模板与 Gate。开赛前 24 小时仍须重新核验官网最新发布，发现冲突时以届时官方原文为准。
+当前版本已把新 AI 声明、固定详情文件名、人工核验责任和论文/支撑材料格式同步到 T7、T8、模板与 Gate。开赛前 24 小时仍须重新核验官网最新发布，发现冲突时以届时官方原文为准。
 
 ## 许可边界
 
@@ -90,6 +92,6 @@ command -v sha256sum >/dev/null && sha256sum -c MANIFEST.sha256 || shasum -a 256
 git ls-files | grep -v '^MANIFEST.sha256$' | LC_ALL=C sort -f | xargs shasum -a 256 > MANIFEST.sha256
 ```
 
-`tests/trigger_cases.json` 是前向触发评估样本，不是静态校验通过的替代品。晋升前须在
+`tests/trigger_cases.json` 是前向触发评估样本，不是静态校验通过的替代品。发布后仍须在
 实际 Codex 环境逐条运行，记录目标 skill 是否唯一触发、兄弟 skill 是否正确交接以及
 上下文负担；未经这一步不得宣称阶段路由已完成行为验证。

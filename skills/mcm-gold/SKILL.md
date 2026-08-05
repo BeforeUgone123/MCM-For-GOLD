@@ -96,7 +96,7 @@ output:
 - `RESULTS.md`：数值、命令、脚本、种子、时间戳与图表。
 - `SOURCES.md`：来源、等级、用途、摘录与获取时间。
 - `AI_USAGE.md`、`RISKS.md`、`HUMAN_SIGNOFFS.md`。
-- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`、`REVIEW_PASS_ITEMS.csv`。
+- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`、`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv`。
 - `SKILL_USAGE.md`、`FREEZE_CHANGE_LOG.md`。
 - `NATURE_QA.csv`、`SOURCE_DATA_MAP.csv`：内置 Nature 质量检查和主张到数据文件的映射。
 
@@ -126,8 +126,8 @@ output:
 | T4 基线 | `$mcm-gold-t4-baseline` | 第一问可复现数值、结果图和基线对照 |
 | T5 主模型 | `$mcm-gold-t5-solve` | 全部小问工件、求解证据、跨问追溯与创新对照 |
 | T6 检验 | `$mcm-gold-t6-validate` | 六类检验有 R-id 或合理 N/A，摘要结论存活 |
-| T7 写作 | `$mcm-gold-t7-write` | 论文、图表与证据台账一致，H-004 完成 |
-| T8 提交 | `$mcm-gold-t8-submit` | 机器终检、清环境复现、H-005 与提交回执 |
+| T7 写作 | `$mcm-gold-t7-write` | 每问六项覆盖账本、七维 rubric、双版本论文与 H-004 闭环 |
+| T8 提交 | `$mcm-gold-t8-submit` | 论文契约终检、清环境复现、H-005 与提交回执 |
 
 不要让总控代写阶段结果。阶段 skill 未加载或缺失时，明确报告缺失，不临时重造一个隐形流程。
 

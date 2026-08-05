@@ -117,6 +117,35 @@ ACCEPTANCE_LAYER_REQUIRED = [
     "支撑域",
     "阈值锁定",
 ]
+PAPER_CONTRACT_REQUIRED = {
+    "skills/mcm-gold/SKILL.md": [
+        "PAPER_COVERAGE_LEDGER.csv",
+        "T7_RUBRIC_REVIEW.csv",
+    ],
+    "skills/mcm-gold-t7-write/SKILL.md": [
+        "PAPER_COVERAGE_LEDGER.csv",
+        "T7_PAPER_CONTRACT.json",
+        "NEEDS_EXPANSION",
+        "PROXY_REHEARSAL",
+        "body.tex",
+    ],
+    "skills/mcm-gold-t8-submit/SKILL.md": [
+        "T8_PAPER_CONTRACT.json",
+        "*_submission.pdf",
+        "禁止把 `main.pdf`",
+        "完整源程序",
+    ],
+    "skills/mcm-gold/templates/workspace-templates.md": [
+        "question_id,component,required_content,claim_or_risk_ids,paper_anchor,evidence_ids,observed,status,human_status",
+        "dimension,score,max_score,pass_score,evidence,observed,status",
+    ],
+    "skills/mcm-gold/templates/paper-templates.md": [
+        "paper/body.tex",
+        "\\lstinputlisting",
+        "verify_paper_contract.py",
+        "DEPTH_REVIEW_REQUIRED",
+    ],
+}
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -171,6 +200,24 @@ def validate() -> list[str]:
     for phrase in ACCEPTANCE_LAYER_REQUIRED:
         if phrase not in gates:
             errors.append(f"adversarial-gates.md 缺方案验收层要点: {phrase}")
+
+    contract_script = SKILLS_ROOT / "mcm-gold" / "templates" / "verify_paper_contract.py"
+    if not contract_script.is_file():
+        errors.append("missing templates/verify_paper_contract.py")
+    elif not contract_script.read_text(encoding="utf-8").startswith("#!/usr/bin/env python3"):
+        errors.append("verify_paper_contract.py missing Python shebang")
+    for relative, phrases in PAPER_CONTRACT_REQUIRED.items():
+        path = REPO_ROOT / relative
+        if not path.is_file():
+            errors.append(f"paper contract surface missing: {relative}")
+            continue
+        surface = path.read_text(encoding="utf-8")
+        for phrase in phrases:
+            if phrase not in surface:
+                errors.append(f"{relative} missing paper contract marker: {phrase}")
+    for phrase in ("PAPER_COVERAGE_LEDGER.csv", "T7_RUBRIC_REVIEW.csv", "*_submission.pdf"):
+        if phrase not in gates:
+            errors.append(f"adversarial-gates.md 缺论文闭环要点: {phrase}")
 
     lit_path = SKILLS_ROOT / "mcm-gold" / "references" / "literature-library.md"
     if not lit_path.is_file():

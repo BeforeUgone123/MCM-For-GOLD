@@ -1,10 +1,15 @@
 schema_version: 2
 repository: "https://github.com/BeforeUgone123/MCM-For-GOLD"
-candidate: "v2.3-hardening-candidate"
-status: "CANDIDATE_NOT_LIVE"
+candidate: "v2.4-paper-closure-candidate"
+release: "v2.4-paper-closure"
+status: "LIVE"
+promotion:
+  date: "2026-08-05"
+  authority: "explicit_user_authorization"
+  policy: "known-problem gates passed; forward gates retained as post-promotion validation debt"
 base:
-  candidate: "v2.2-2026-rules-ingested"
-  git_commit: "338c2b01263ae27eeb32bde9666f71e431f49fd8"
+  candidate: "v2.3-hardening-candidate"
+  git_commit: "93afe09e80d40ec265a455c6e2bdced5f39a4083"
   live_ancestor: "v1.7-nature-adapter"
   excludes_unpromoted_candidate: "v1.8-deliverable-closure-candidate"
 layout: "skills/atomic-sibling-group"
@@ -34,10 +39,13 @@ members:
   - "mcm-gold-t6-validate"
   - "mcm-gold-t7-write"
   - "mcm-gold-t8-submit"
-promotion_requirements:
+validated_before_promotion:
   - "all members pass quick_validate.py"
-  - "group links, routes, metadata, and embedded-Nature checks pass"
-  - "one new-problem modular discovery run"
-  - "one different-family modular validation run"
-  - "human review of trigger boundaries, handoffs, and embedded Nature burden"
+  - "group links, routes, metadata, embedded-Nature checks, and paper-contract regressions pass"
+  - "current 2024 A artifact is rejected for missing structured coverage, canonical rubric, and explicit submission edition"
+  - "repaired 2022 C regression and concise-complete 2019 D negative control do not overfit to page count"
   - "no frozen replay or score is modified in place"
+post_promotion_validation_debt:
+  - "one new-problem T7-T8 discovery run and one different-family validation run"
+  - "human H-004/H-005 review of substantive coverage, non-padding, package choice, and added T7 overhead"
+  - "paper-contract bookkeeping stays within 10 percent of T7 wall time"

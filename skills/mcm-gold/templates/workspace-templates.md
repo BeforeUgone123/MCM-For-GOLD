@@ -95,6 +95,39 @@ figure_id,file,claim_ids,core_conclusion,panel_roles,backend,final_size,statisti
 F-001,figures/example.pdf,C-001,<一句可证伪结论>,<主证据/验证/控制>,python,<栏宽×高度>,<n/区间/检验>,intermediate/example.csv,src/plot_example.py,R-001,<图能与不能说明什么>,<分辨率/遮挡/数值回读>,checked,2026-09-12T10:00:00+08:00
 ```
 
+## PAPER_COVERAGE_LEDGER.csv
+
+每问固定六行；这是论文论证的验收账本，不与通用 `REVIEW_PASS_ITEMS.csv` 混用。`paper_anchor` 必须是阅读版 PDF 经 `pdftotext` 后可检索的真实标题、表题或句首。`validation` 关联主要 K-id 和 R/P/V-id；`result` 关联可复核 R/P/V-id。`interface/definition/algorithm/result` 不允许 `N_A`；其他 `N_A` 必须关联 D-id 和理由。
+
+```csv
+question_id,component,required_content,claim_or_risk_ids,paper_anchor,evidence_ids,observed,status,human_status
+Q1,interface,<输入/待求对象/跨问接口/物理工件>,C-001,4.1 问题一任务接口,Q1页2;<题面字段>,<回读到输入与输出>,PASS,HUMAN_ACCEPTED
+Q1,definition,<变量/单位/目标/方程/约束及选型理由>,C-001,4.2 问题一模型定义,R-001,<回读到定义和理由>,PASS,HUMAN_ACCEPTED
+Q1,algorithm,<数据/参数/算法/停止条件>,C-001,4.3 问题一求解,R-002,<回读到可复现步骤>,PASS,HUMAN_ACCEPTED
+Q1,result,<数值/单位/图表/基线/关键样本>,C-002,表 3 问题一结果,R-003,<回读到结果和单位>,PASS,HUMAN_ACCEPTED
+Q1,validation,<匹配主要风险的实际检验>,K-001,4.5 问题一稳健性检验,R-004;P-021,<回读到检验范围和结论>,PASS,HUMAN_ACCEPTED
+Q1,boundary,<代表什么/不代表什么/依赖与复核触发>,C-002;K-001,4.6 问题一解释边界,D-008;<R-id>,<回读到拒答或适用边界>,PASS,HUMAN_ACCEPTED
+```
+
+`status` 仅取 `PASS/WEAK/MISSING/N_A`；`human_status` 仅取 `PENDING/HUMAN_ACCEPTED/PROXY_REHEARSAL`。机器结构通过不能替代 H-004；无人演练全部写 `PROXY_REHEARSAL`。
+
+## T7_RUBRIC_REVIEW.csv
+
+必须逐行使用 `references/rubric-and-writing.md` 的七个维度、满分和及格线，不得临时发明四维或等权评分表。
+
+```csv
+dimension,score,max_score,pass_score,evidence,observed,status
+摘要页,13,15,10,<实际页码/句子>,<数值结论与边界回读>,PASS
+问题分析与假设,8,10,6,<实际页码/表>,<假设依据与回收方式>,PASS
+模型建立,22,25,16,<实际页码/公式>,<定义、理由与基线关系>,PASS
+求解与结果正确性,19,22,15,<实际页码/图表/R-id>,<算法、参数、结果与复现>,PASS
+检验与稳健性,11,13,8,<实际页码/K/R/P-id>,<六类检验或合理N/A>,PASS
+写作与图表,11,12,8,<实际页码/图号>,<数字一致与渲染回读>,PASS
+合规与附录,3,3,3,<提交版/清单/代码>,<规则与附录回读>,PASS
+```
+
+总分低于 `CONFIG.target.rubric_threshold` 或任一维低于及格线时，论文契约只能为 `NEEDS_EXPANSION`，T7 阶段不得写 `PASS/PASS_WITH_LIMITATIONS`。
+
 ## REVIEW_PASS_ITEMS.csv
 
 “已检查”不是证据；每行必须写实际观测和期望/容差。
