@@ -55,8 +55,8 @@ training/
 ├─ SKILL_CHANGE_LOG.csv
 ├─ research/
 ├─ benchmarks/<year-problem>/<run-id>/
-│  ├─ official/  workspace/  src/  figures/  paper/  deliverables/
-│  └─ REPLAY_REVIEW.md
+│  ├─ MCM-Result/             # 使用 output-layout.md 的固定七目录
+│  └─ MCM-Result/Review-Results/REPLAY_REVIEW.md
 ├─ validation/
 ├─ holdout/
 └─ skill-snapshots/<version>/

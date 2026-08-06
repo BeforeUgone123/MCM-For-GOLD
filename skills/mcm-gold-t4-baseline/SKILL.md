@@ -5,7 +5,7 @@ description: 数学建模竞赛 T4 基线模型专家。用于为第一问建立
 
 # T4 基线模型
 
-先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。先证明最小闭环，再追求复杂度。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。先证明最小闭环，再追求复杂度。
 
 ## 必需输入
 
@@ -30,11 +30,11 @@ description: 数学建模竞赛 T4 基线模型专家。用于为第一问建立
 
 ## 产物
 
-- `T4_BASELINE.md`：定义、手算/边界检查、结果、限制和对照指标。
-- `src/baseline.*`、一键命令、原生日志、结果源表和首张图。
-- `RESULTS.md` 的 R-id、`CLAIM_LEDGER.csv` 的候选主张。
-- `FIGURE_EVIDENCE.csv`、figure contract、源表、脚本、SVG/PDF、PNG 预览与视觉 QA。
-- `paper/` 当前可交版本；有模板时包含回读通过的工作副本。
+- `MCM-Result/Intermediate-Outputs/T4_BASELINE.md`：定义、手算/边界检查、结果、限制和对照指标。
+- `MCM-Result/Data-Scripts/src/baseline.*` 与 `Data-Scripts/run_all.py`；原生日志放 `Intermediate-Outputs/logs/`，结果源表和首张图放 `Data-Figures/`。
+- `MCM-Result/Intermediate-Outputs/RESULTS.md` 的 R-id、`CLAIM_LEDGER.csv` 的候选主张。
+- `MCM-Result/Review-Results/FIGURE_EVIDENCE.csv`、figure contract 与视觉 QA；源表和图放 `Data-Figures/`，脚本放 `Data-Scripts/`。
+- `MCM-Result/Paper-Outputs/paper/` 当前可交版本；有模板时包含回读通过的工作副本。
 
 ## Gate
 

@@ -5,13 +5,13 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 
 # T7 论文与图表
 
-先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[写作与评分](../mcm-gold/references/rubric-and-writing.md)、[可引用书目](../mcm-gold/references/literature-library.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[论文模板](../mcm-gold/templates/paper-templates.md)。从 T4 起滚动写作，不把写作留到最后。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[写作与评分](../mcm-gold/references/rubric-and-writing.md)、[可引用书目](../mcm-gold/references/literature-library.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[论文模板](../mcm-gold/templates/paper-templates.md)。从 T4 起滚动写作，不把写作留到最后。
 
 ## 必需输入
 
 - T1 逐问字面工件，T2 冻结定义与来源，T4/T5 结果与基线。
 - T6 的确认、受限、否决主张及可用表述边界。
-- `RESULTS.md`、`SOURCES.md`、`RISKS.md`、claim/figure 台账、规则包和当前论文。
+- `MCM-Result/Intermediate-Outputs/RESULTS.md`、`MCM-Result/Reference-Papers/SOURCES.md`、`MCM-Result/Intermediate-Outputs/RISKS.md`、claim/figure 台账、规则包和当前论文。
 - T1 的逐问接口清单与 T6 的 K-id、检验结论；缺上游证据时相应覆盖项只能标 `WEAK/MISSING`，不得用文字补成通过。
 
 ## 执行
@@ -31,21 +31,21 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 13. `paper_format=word` 时，从 SourceModel 建 DocumentSpec，并直接用 `officecli` 生成和回读实际 DOCX；LaTeX 主线不绕到 Office。题面要求 PPTX 时从同一 SourceModel 建 SlideSpec 和实际 PPTX，不停在大纲。
 14. 论文正文不出现训练状态、内部 H/R 编号、责任边界、支撑清单或不可提交横幅；这些只留在论文外工作区。
 15. 在参考文献之前设置 2026 版“AI 工具使用声明”，从实际 `AI_USAGE.md` 二选一回填原文。使用 AI 时生成 `AI 工具使用详情.pdf` 并逐项回读工具名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验及核心建模与分析的队员主导证据；不把 AI 工具列入参考文献，不沿用 2025 版正文逐处标注旧模板。
-16. LaTeX 路线只维护一个 `paper/body.tex` 科学正文源；`main.tex` 只引入正文，`*_submission.tex` 引入同一正文后追加由最终支撑目录实际遍历生成的文件列表与全部 `\lstinputlisting` 源程序。Word 路线也必须从同一 DocumentSpec 生成两版并做正文回读比对。
+16. LaTeX 路线只维护一个 `MCM-Result/Paper-Outputs/paper/body.tex` 科学正文源；`main.tex` 只引入正文，`*_submission.tex` 引入同一正文后追加由最终支撑目录实际遍历生成的文件列表与全部 `\lstinputlisting` 源程序。Word 路线也必须从同一 DocumentSpec 生成两版并做正文回读比对。
 17. 逐行填写固定七维 `T7_RUBRIC_REVIEW.csv`。总分低于 `CONFIG.target.rubric_threshold` 或任一单项低于及格线时，修复实质缺口并让论文契约返回 `NEEDS_EXPANSION`；T7 阶段不得 `PASS/PASS_WITH_LIMITATIONS`，不能以自创评分表绕过。
-18. 对最终阅读版、提交版、覆盖账本、rubric 和实际支撑/源程序目录运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存 `T7_PAPER_CONTRACT.json`。契约错误必须修复；明显短文只触发 `DEPTH_REVIEW_REQUIRED`，由 H-004 判断是否过度压缩，不按页数填充。
+18. 对最终阅读版、提交版、覆盖账本、rubric 和实际支撑/源程序目录运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存到 `MCM-Result/Review-Results/T7_PAPER_CONTRACT.json`。契约错误必须修复；明显短文只触发 `DEPTH_REVIEW_REQUIRED`，由 H-004 判断是否过度压缩，不按页数填充。
 19. H-004 必须阅读实际 `main.pdf`，逐问确认解释、结果、主图、验证和边界。演练只能把覆盖行写成 `PROXY_REHEARSAL`，最终状态不得冒充正式 `PASS`。
 
 ## 产物
 
-- `paper/main.*` 与 `paper/main.pdf` 阅读审查版。
-- `paper/*_submission.*` 与明确打包白名单。
-- `PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv` 与 `T7_PAPER_CONTRACT.json`。
-- `MCM_SOURCE_MODEL.yaml`；Word/PPT 路线另含 DocumentSpec/SlideSpec、实际 Office 文件和 QA。
-- `T7_FIGURE_CONTRACTS.md`、源表、图表和视觉核查记录。
-- 从 `PAPER_COVERAGE_LEDGER.csv` 派生的 `T7_ARGUMENT_AUDIT.md`、`NATURE_QA.csv` 与 `SOURCE_DATA_MAP.csv` 闭环记录。
-- 更新后的 claim/figure 台账。
-- `T7_H004_BRIEF.md`：结果解释、摘要结论、主图和剩余风险。
+- `MCM-Result/Paper-Outputs/paper/main.*` 与 `paper/main.pdf` 阅读审查版。
+- `MCM-Result/Paper-Outputs/paper/*_submission.*` 与明确打包白名单。
+- `MCM-Result/Review-Results/PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv` 与 `T7_PAPER_CONTRACT.json`。
+- `MCM-Result/Intermediate-Outputs/MCM_SOURCE_MODEL.yaml`；Word/PPT 路线的 DocumentSpec/SlideSpec 放同处，实际 Office 文件放 `Paper-Outputs/`，QA 放 `Review-Results/`。
+- `MCM-Result/Review-Results/T7_FIGURE_CONTRACTS.md` 与视觉核查记录；源表和图表放 `Data-Figures/`。
+- 从覆盖账本派生的 `MCM-Result/Review-Results/T7_ARGUMENT_AUDIT.md`、`NATURE_QA.csv`；`SOURCE_DATA_MAP.csv` 放 `Intermediate-Outputs/`。
+- 更新后的 claim 台账放 `Intermediate-Outputs/`，figure review 台账放 `Review-Results/`。
+- `MCM-Result/Review-Results/T7_H004_BRIEF.md`：结果解释、摘要结论、主图和剩余风险。
 
 ## Gate
 

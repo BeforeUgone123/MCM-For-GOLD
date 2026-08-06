@@ -146,6 +146,15 @@ PAPER_CONTRACT_REQUIRED = {
         "DEPTH_REVIEW_REQUIRED",
     ],
 }
+OUTPUT_DIRECTORIES = [
+    "Reference-Papers",
+    "Data-Scripts",
+    "Competition-Materials",
+    "Paper-Outputs",
+    "Data-Figures",
+    "Intermediate-Outputs",
+    "Review-Results",
+]
 
 
 def frontmatter(text: str) -> dict[str, str]:
@@ -193,6 +202,20 @@ def validate() -> list[str]:
             errors.append(f"rules-2026.md contains stale policy text: {phrase}")
     if "cumcm_ai_2026_trial" not in coordinator:
         errors.append("coordinator does not select the 2026 trial AI policy")
+
+    output_layout_path = SKILLS_ROOT / "mcm-gold" / "references" / "output-layout.md"
+    output_initializer = SKILLS_ROOT / "mcm-gold" / "templates" / "init_result_workspace.py"
+    if not output_layout_path.is_file():
+        errors.append("missing references/output-layout.md")
+    else:
+        output_layout = output_layout_path.read_text(encoding="utf-8")
+        for directory in OUTPUT_DIRECTORIES:
+            if directory not in output_layout:
+                errors.append(f"output-layout.md missing canonical directory: {directory}")
+    if not output_initializer.is_file():
+        errors.append("missing templates/init_result_workspace.py")
+    if "result_root: \"./MCM-Result\"" not in coordinator:
+        errors.append("coordinator does not fix result_root to ./MCM-Result")
 
     gates = (SKILLS_ROOT / "mcm-gold" / "references" / "adversarial-gates.md").read_text(
         encoding="utf-8"
@@ -269,6 +292,8 @@ def validate() -> list[str]:
             errors.append(f"{name}: external Nature skill dependency found")
 
         if name != "mcm-gold":
+            if "../mcm-gold/references/output-layout.md" not in text:
+                errors.append(f"{name}: output layout contract not routed")
             if "../mcm-gold/references/stage-contract.md" not in text:
                 errors.append(f"{name}: stage contract not routed")
             if f"${name}" not in coordinator:

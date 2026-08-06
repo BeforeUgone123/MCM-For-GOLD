@@ -49,7 +49,11 @@ class RepositoryIntegrityTests(unittest.TestCase):
         # Linked worktrees store .git as a pointer file rather than a directory.
         if (ROOT / ".git").exists():
             result = subprocess.run(
-                ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+                ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
             )
             expected_files = {
                 item for item in result.stdout.splitlines() if item != "MANIFEST.sha256"

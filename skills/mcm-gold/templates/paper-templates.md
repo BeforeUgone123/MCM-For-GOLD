@@ -85,14 +85,14 @@ plt.rcParams["axes.unicode_minus"] = False   # 负号也会变方框
 | <support.zip 内相对路径> | <用途；逐文件列出，含 `AI 工具使用详情.pdf`（若使用）> |
 ```
 
-正式提交版随后列“附录 B 源程序”，粘贴全部完整、可运行代码；同时生成省略合规材料和程序附录的阅读审查版。`paper/main.pdf`固定为纯论文默认入口，提交候选用`*_submission.pdf`显式命名；阅读版正文与科学附录保持正赛论文形态，不插入训练说明、内部编号、责任边界或“不可提交”横幅；不可提交状态仅在文件名、论文外 README 和打包白名单标识。默认预览、逐页截图和 H-004 审表达均看阅读版；文件列表须由打包目录实际遍历生成，禁止手写猜测。
+正式提交版随后列“附录 B 源程序”，粘贴全部完整、可运行代码；同时生成省略合规材料和程序附录的阅读审查版。`MCM-Result/Paper-Outputs/paper/main.pdf` 固定为纯论文默认入口，提交候选用 `*_submission.pdf` 显式命名；阅读版正文与科学附录保持正赛论文形态，不插入训练说明、内部编号、责任边界或“不可提交”横幅；不可提交状态仅在文件名、论文外 README 和打包白名单标识。默认预览、逐页截图和 H-004 审表达均看阅读版；文件列表须由打包目录实际遍历生成，禁止手写猜测。
 
 两版必须从同一科学正文生成，禁止复制后分别修改：
 
 ```text
-paper/body.tex                 # 摘要到参考文献，唯一科学正文源
-paper/main.tex                 # 只 input body.tex，生成 main.pdf
-paper/<problem>_submission.tex # input body.tex，再接实际文件列表和完整源程序
+MCM-Result/Paper-Outputs/paper/body.tex                 # 摘要到参考文献，唯一科学正文源
+MCM-Result/Paper-Outputs/paper/main.tex                 # 只 input body.tex，生成 main.pdf
+MCM-Result/Paper-Outputs/paper/<problem>_submission.tex # input body.tex，再接实际文件列表和完整源程序
 ```
 
 ```latex

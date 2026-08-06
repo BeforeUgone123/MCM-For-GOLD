@@ -1,6 +1,6 @@
 # 状态与证据文件模板
 
-在 `CONFIG.process.state_dir` 下建立；示例只定义最小字段，按记录重复行。
+遵守 `references/output-layout.md`：状态与证据台账默认在 `CONFIG.process.state_dir`（即 `MCM-Result/Intermediate-Outputs/`），`SOURCES.md` 在 `Reference-Papers/`，AI review 矩阵、报告、契约和 QA 在 `Review-Results/`。示例只定义最小字段，按记录重复行。
 
 ## STATE.md
 
@@ -92,7 +92,7 @@ C-001,摘要,<可核查结论>,<数值>,<单位>,R-001,S-001,F-001,candidate,H-0
 
 ```csv
 figure_id,file,claim_ids,core_conclusion,panel_roles,backend,final_size,statistics,source_table,script,run_ids,caption_boundary,visual_check,status,updated_at
-F-001,figures/example.pdf,C-001,<一句可证伪结论>,<主证据/验证/控制>,python,<栏宽×高度>,<n/区间/检验>,intermediate/example.csv,src/plot_example.py,R-001,<图能与不能说明什么>,<分辨率/遮挡/数值回读>,checked,2026-09-12T10:00:00+08:00
+F-001,MCM-Result/Data-Figures/example.pdf,C-001,<一句可证伪结论>,<主证据/验证/控制>,python,<栏宽×高度>,<n/区间/检验>,MCM-Result/Data-Figures/example.csv,MCM-Result/Data-Scripts/plot_example.py,R-001,<图能与不能说明什么>,<分辨率/遮挡/数值回读>,checked,2026-09-12T10:00:00+08:00
 ```
 
 ## PAPER_COVERAGE_LEDGER.csv
@@ -134,7 +134,7 @@ dimension,score,max_score,pass_score,evidence,observed,status
 
 ```csv
 pass_id,stage,item,file_location,observed,expected_or_tolerance,evidence,checker,checked_at,status
-P-001,T4,销量约束残差,workspace/solver.log,0,<=1e-6,R-001,AI,2026-09-11T12:00:00+08:00,PASS
+P-001,T4,销量约束残差,MCM-Result/Intermediate-Outputs/logs/solver.log,0,<=1e-6,R-001,AI,2026-09-11T12:00:00+08:00,PASS
 ```
 
 ## SKILL_USAGE.md
@@ -151,7 +151,7 @@ P-001,T4,销量约束残差,workspace/solver.log,0,<=1e-6,R-001,AI,2026-09-11T12
 
 ```csv
 qa_id,stage,module,artifact,claim_refs,observed,expected,evidence,human_gate,status,updated_at
-NQ-001,T4,figure_contract,figures/F-001.pdf,"C-001;R-001;F-001",<实际观察>,<合同与容差>,P-001,H-004,EVIDENCE_CHECKED,2026-09-11T12:00:00+08:00
+NQ-001,T4,figure_contract,MCM-Result/Data-Figures/F-001.pdf,"C-001;R-001;F-001",<实际观察>,<合同与容差>,P-001,H-004,EVIDENCE_CHECKED,2026-09-11T12:00:00+08:00
 ```
 
 ## SOURCE_DATA_MAP.csv
@@ -160,7 +160,7 @@ NQ-001,T4,figure_contract,figures/F-001.pdf,"C-001;R-001;F-001",<实际观察>,<
 
 ```csv
 dataset_id,kind,claim_ids,result_ids,source_ids,actual_location,sha256,access_route,restriction,license_or_terms,generated_by,status,updated_at
-DS-001,figure_source,C-001,R-001,S-001,intermediate/fig1.csv,<sha256>,support_package,NONE,<官方附件条款>,src/plot_fig1.py,VERIFIED,2026-09-12T10:00:00+08:00
+DS-001,figure_source,C-001,R-001,S-001,MCM-Result/Data-Figures/fig1.csv,<sha256>,support_package,NONE,<官方附件条款>,MCM-Result/Data-Scripts/plot_fig1.py,VERIFIED,2026-09-12T10:00:00+08:00
 ```
 
 ## MCM_SOURCE_MODEL.yaml

@@ -5,7 +5,7 @@ description: 数学建模竞赛 T3 数据审计专家。用于建立数据字典
 
 # T3 数据审计
 
-先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。本阶段不通过“清洗得更漂亮”来制造有利结论。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。本阶段不通过“清洗得更漂亮”来制造有利结论。
 
 ## 必需输入
 
@@ -15,7 +15,7 @@ description: 数学建模竞赛 T3 数据审计专家。用于建立数据字典
 
 ## 执行
 
-1. 冻结原始文件，记录文件名、大小、SHA-256、获取方式和只读副本；不得覆盖原件。
+1. 把题面、官方数据和模板的只读副本冻结到 `MCM-Result/Competition-Materials/`，记录文件名、大小、SHA-256 和获取方式；不得覆盖原件。
 2. 建数据字典：表/字段、类型、单位、量纲、范围、缺失率、唯一性、时间含义、来源和下游用途。
 3. 审计缺失、异常、重复、时间戳、单位混用、口径变化、总量/组成守恒和跨表一致性。
 4. 对模型所有候选键做覆盖审计。把未出现组合逐项判成 `结构性0|未知缺失|不适用`，禁止因键未出现而漏约束。
@@ -29,12 +29,12 @@ description: 数学建模竞赛 T3 数据审计专家。用于建立数据字典
 
 ## 产物
 
-- `data/RAW_MANIFEST.sha256`、`data/FROZEN_MANIFEST.sha256`。
-- `T3_DATA_DICTIONARY.csv`、`T3_DATA_QUALITY.md`、`T3_KEY_COVERAGE.csv`。
-- `src/clean_data.*`、`data/split_index.*` 和可视化体检图。
-- `T3_TEMPLATE_MAP.csv`：存在官方结果模板时生成。
-- `SOURCE_DATA_MAP.csv`：主张到原始/处理/图源数据及实际交付位置的映射。
-- `RESULTS.md` 中的数据审计 R-id 与 `ASSUMPTIONS.md` 中的口径假设。
+- `MCM-Result/Competition-Materials/RAW_MANIFEST.sha256` 与 `MCM-Result/Intermediate-Outputs/FROZEN_MANIFEST.sha256`。
+- `MCM-Result/Review-Results/T3_DATA_DICTIONARY.csv`、`T3_DATA_QUALITY.md`、`T3_KEY_COVERAGE.csv`。
+- `MCM-Result/Data-Scripts/src/clean_data.*`、`MCM-Result/Intermediate-Outputs/split_index.*` 和 `MCM-Result/Data-Figures/` 下的可视化体检图。
+- `MCM-Result/Review-Results/T3_TEMPLATE_MAP.csv`：存在官方结果模板时生成。
+- `MCM-Result/Intermediate-Outputs/SOURCE_DATA_MAP.csv`：主张到原始/处理/图源数据及实际交付位置的映射。
+- `MCM-Result/Intermediate-Outputs/RESULTS.md` 中的数据审计 R-id 与 `ASSUMPTIONS.md` 中的口径假设。
 
 ## Gate
 

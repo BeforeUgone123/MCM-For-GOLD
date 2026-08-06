@@ -16,6 +16,7 @@ description: 全国大学生数学建模竞赛（CUMCM）全流程总控与阶�
 5. 任何时刻保留一份“此刻截止也能交”的版本；冻结内容通过 supersession 更新，不原地改写证据。
 6. AI 只组织候选、证据和检查；人类负责题意、路线、事实、表达、披露和最终提交。
 7. live 模式必须 `human_in_loop=true`；无人演练只能标 `PROXY_REHEARSAL`，不得称为正式可提交。
+8. 所有工作输出统一写入当前工作目录的 `MCM-Result/`，并严格使用[输出目录契约](references/output-layout.md)规定的七个英文子目录；目录不存在时先初始化，不在根目录散落产物。
 
 ## 生效配置
 
@@ -68,7 +69,8 @@ process:
   run_mode: live
   rehearsal_clock: compressed
   entry_mode: full_pipeline
-  state_dir: "./workspace"
+  result_root: "./MCM-Result"
+  state_dir: "./MCM-Result/Intermediate-Outputs"
   checkpoint_every_hours: 2
   always_shippable: true
   timebox_enforcement: hard
@@ -84,23 +86,23 @@ output:
   support_file_mb: 20
 ```
 
-仅覆写 `process.rigor` 时，同步派生前沿方法额度：`lite=0/A`、`standard=1/A`、`gold=2/B`、`paranoid=2/C`；用户显式覆写时以用户值为准。把 `state_dir` 立即解析为绝对路径。
+仅覆写 `process.rigor` 时，同步派生前沿方法额度：`lite=0/A`、`standard=1/A`、`gold=2/B`、`paranoid=2/C`；用户显式覆写时以用户值为准。`result_root` 固定解析为当前工作目录下的 `MCM-Result/`，不得覆写到其他位置；运行 `templates/init_result_workspace.py` 后，把 `result_root` 与 `state_dir` 立即解析为绝对路径。
 
 ## 状态与证据
 
-初始化并持续维护：
+初始化并持续维护。除特别标注外，以下状态台账均位于 `MCM-Result/Intermediate-Outputs/`：
 
 - `STATE.md`：时钟、阶段、阻塞、当前可交版本、下一动作。
 - `DECISIONS.md`：方向性决策、被否方案和原因。
 - `ASSUMPTIONS.md`：假设、依据、影响、检验与结论。
 - `RESULTS.md`：数值、命令、脚本、种子、时间戳与图表。
-- `SOURCES.md`：来源、等级、用途、摘录与获取时间。
+- `Reference-Papers/SOURCES.md`：来源、等级、用途、摘录与获取时间。
 - `AI_USAGE.md`、`RISKS.md`、`HUMAN_SIGNOFFS.md`。
-- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`、`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv`。
+- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`；`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv` 和阶段契约文件写入 `MCM-Result/Review-Results/`。
 - `SKILL_USAGE.md`、`FREEZE_CHANGE_LOG.md`。
 - `NATURE_QA.csv`、`SOURCE_DATA_MAP.csv`：内置 Nature 质量检查和主张到数据文件的映射。
 
-使用 `templates/workspace-templates.md` 的模式。关键结论不得只留在对话里。完整交接规则见 `references/stage-contract.md`。
+使用 `templates/workspace-templates.md` 的模式，并遵守 `references/output-layout.md` 的归档映射。关键结论不得只留在对话里。完整交接规则见 `references/stage-contract.md`。
 
 ## 调度循环
 
@@ -169,6 +171,7 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 ## 共享参考
 
 - 规则和披露：`references/rules-2026.md`
+- 输出目录：`references/output-layout.md`
 - 阶段交接：`references/stage-contract.md`
 - 证据冻结：`references/evidence-contract.md`
 - 方法和前沿卡：`references/methods-atlas.md`、`references/frontier-cards.md`
@@ -183,9 +186,10 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 ## 启动自检
 
 1. 读取配置并输出生效配置。
-2. 运行 `templates/env_check.sh` 并读取实际输出；缺联网时设置 `research.online=false`，不得伪造来源。
-3. 核验规则包时效、绝对 `state_dir`、真实时钟与 AI 披露义务。
-4. 初始化状态文件，定位当前阶段和一个主要缺口。
-5. 初始化 `NATURE_QA.csv`、`SOURCE_DATA_MAP.csv`，确认内置 Nature 模式且不依赖外部 Nature skill。
-6. 路由到对应阶段专家并记录到 `SKILL_USAGE.md`。
-7. 输出首份阶段简报。
+2. 运行 `templates/init_result_workspace.py --workdir <当前工作目录>`，回读绝对 `result_root` 和七个固定子目录；禁止在 `MCM-Result/` 外创建工作输出。
+3. 运行 `templates/env_check.sh` 并把实际输出保存到 `MCM-Result/Intermediate-Outputs/logs/`；缺联网时设置 `research.online=false`，不得伪造来源。
+4. 核验规则包时效、绝对 `result_root`/`state_dir`、真实时钟与 AI 披露义务。
+5. 初始化状态文件，定位当前阶段和一个主要缺口。
+6. 在 `MCM-Result/Review-Results/` 初始化 `NATURE_QA.csv`，在 `MCM-Result/Intermediate-Outputs/` 初始化 `SOURCE_DATA_MAP.csv`，确认内置 Nature 模式且不依赖外部 Nature skill。
+7. 路由到对应阶段专家并记录到 `SKILL_USAGE.md`。
+8. 输出首份阶段简报。

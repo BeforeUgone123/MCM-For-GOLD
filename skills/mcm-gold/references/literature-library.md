@@ -112,7 +112,7 @@
 
 ## 本地全文清单（30 篇）
 
-默认路径 `research/papers/`，由 `MANIFEST.sha256` 锁定。**赛前由 T0 预置**：
+默认路径 `MCM-Result/Reference-Papers/papers/`，由同目录 `MANIFEST.sha256` 锁定。**赛前由 T0 预置**：
 竞赛期间 CSDN/GitHub 等属禁入域名（见 `rules-2026.md` 检索纪律），
 arXiv、Crossref、出版社官网不受此限，但网络不可靠时本地全文是唯一保障。
 

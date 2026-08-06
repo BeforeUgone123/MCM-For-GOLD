@@ -5,7 +5,7 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 
 # T2 情报与数学形式化
 
-先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[调研路由](../mcm-gold/references/research-and-skill-routing.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[调研路由](../mcm-gold/references/research-and-skill-routing.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。
 
 ## 必需输入
 
@@ -17,7 +17,7 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 
 1. 用**直接访问官方首页、DOI 或库官方文档 URL**确认联网能力，不用通用搜索引擎做连通性探针。不可用时设置 `research.online=false`，只使用题面、附件和队伍已有且可核验资料。
 2. live 竞赛期间只检索标准、数据、论文和官方口径；不浏览、发布或讨论本届赛题的解析、代码和交流内容。
-3. **执行[赛事规则](../mcm-gold/references/rules-2026.md)第五节「检索纪律」的禁入域名清单**（参赛规则第 5 条点名 `tieba.baidu.com`、`zhihu.com`、`xiaohongshu.com`、`csdn.net`、`github.com` 等，规则为开放列举，同性质题解/代码分享站同等对待）。live 模式只允许直接访问已判定安全的官方/标准/论文/数据 URL，或使用能在请求前强制域名白名单的检索接口；工具不能强制白名单时，不做开放网页检索。开检索前把白名单、禁入域名和直接 URL 写入 `research/SEARCH_LOG.md`；误开禁入页面时立即关闭、登记 `SEARCH_LOG.md` 与 `RISKS.md`，该页内容不得进入任何产物。需要库文档时改用官方文档站或本地 `pip show` / `help()` / `print(dir(库))`。
+3. **执行[赛事规则](../mcm-gold/references/rules-2026.md)第五节「检索纪律」的禁入域名清单**（参赛规则第 5 条点名 `tieba.baidu.com`、`zhihu.com`、`xiaohongshu.com`、`csdn.net`、`github.com` 等，规则为开放列举，同性质题解/代码分享站同等对待）。live 模式只允许直接访问已判定安全的官方/标准/论文/数据 URL，或使用能在请求前强制域名白名单的检索接口；工具不能强制白名单时，不做开放网页检索。开检索前把白名单、禁入域名和直接 URL 写入 `MCM-Result/Reference-Papers/SEARCH_LOG.md`；误开禁入页面时立即关闭、登记该日志与 `MCM-Result/Intermediate-Outputs/RISKS.md`，该页内容不得进入任何产物。需要库文档时改用官方文档站或本地 `pip show` / `help()` / `print(dir(库))`。
 4. 来源分为 A 官方/标准/同行评议、B 机构报告/数据文档、C 博客/论坛/AI 线索。C 级永不作为论文论据。
 5. 对关键事实、参数区间、方法适用条件和失效模式至少做独立来源交叉验证；每条采用事实立即写 S-id。
 6. 经典方法的出处**先查**[可引用书目](../mcm-gold/references/literature-library.md)（AHP/TOPSIS/ARIMA/K-means 等已逐条核验），前沿方法查[前沿卡](../mcm-gold/references/frontier-cards.md)的源列；两处都没有再联网检索。书目库只保证字段正确，**不代表已读过**——未读过的只能引方法出处，不得转述其结论。
@@ -38,14 +38,14 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 
 ## 产物
 
-- `research/SEARCH_LOG.md`、`research/MECHANISM_MAP.md`、`SOURCES.md`。
-- `T2_FORMALIZATION.md`：统一符号、逐问定义、跨问接口和结论边界。
-- `T2_ROUTE_MATRIX.csv`：主、备、降级路线的证据、成本和失败条件。
-- `T2_CLAIM_SOURCE_MAP.csv`：C-id、原文、claim 类型、边界、S-id、支撑等级和采用状态。
-- `ASSUMPTIONS.md`、`DECISIONS.md` 与 H-002/H-003 待核项。
+- `MCM-Result/Reference-Papers/SEARCH_LOG.md`、`MECHANISM_MAP.md`、`SOURCES.md`。
+- `MCM-Result/Intermediate-Outputs/T2_FORMALIZATION.md`：统一符号、逐问定义、跨问接口和结论边界。
+- `MCM-Result/Review-Results/T2_ROUTE_MATRIX.csv`：主、备、降级路线的证据、成本和失败条件。
+- `MCM-Result/Review-Results/T2_CLAIM_SOURCE_MAP.csv`：C-id、原文、claim 类型、边界、S-id、支撑等级和采用状态。
+- `MCM-Result/Intermediate-Outputs/ASSUMPTIONS.md`、`DECISIONS.md` 与 H-002/H-003 待核项。
 
 ## Gate
 
-每个小问均有输入、变量/参数、数学对象、物理输出、验证和跨问接口；关键事实有 S-id 与支撑等级，metadata-only 未被采用；`SEARCH_LOG.md` 已登记禁入域名清单且无禁入域名采用记录；假设有检验计划；路线有备选和停止条件。live 模式路线/简化边界等待 H-002，关键事实/单位/口径进入 H-003。等待时返回 `NEEDS_HUMAN`，不得把候选路线写成最终路线。
+每个小问均有输入、变量/参数、数学对象、物理输出、验证和跨问接口；关键事实有 S-id 与支撑等级，metadata-only 未被采用；`MCM-Result/Reference-Papers/SEARCH_LOG.md` 已登记禁入域名清单且无禁入域名采用记录；假设有检验计划；路线有备选和停止条件。live 模式路线/简化边界等待 H-002，关键事实/单位/口径进入 H-003。等待时返回 `NEEDS_HUMAN`，不得把候选路线写成最终路线。
 
 把冻结定义、来源、假设、路线、接口、D/S/H 编号和 T3/T4 所需数据契约写入 `[HANDOFF T2]`。

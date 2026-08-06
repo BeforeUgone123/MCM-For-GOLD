@@ -5,7 +5,7 @@ description: 数学建模竞赛 T6 检验与稳健性专家。用于执行正确
 
 # T6 检验与稳健性
 
-先读[阶段交接契约](../mcm-gold/references/stage-contract.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。本阶段的目标不是让所有结果“通过”，而是准确界定哪些结论能存活。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。本阶段的目标不是让所有结果“通过”，而是准确界定哪些结论能存活。
 
 ## 必需输入
 
@@ -34,11 +34,11 @@ description: 数学建模竞赛 T6 检验与稳健性专家。用于执行正确
 
 ## 产物
 
-- `T6_VALIDATION_MATRIX.csv`：主张 x 六类检验 x R-id x 状态。
-- `T6_ADVERSARIAL_REPORT.md`：攻击、失败、存活结论和降级建议。
-- 灵敏度/不确定性源表、图、验证脚本和干净重跑日志。
-- 更新后的 `RESULTS.md`、`CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv` 和 `REVIEW_PASS_ITEMS.csv`。
-- `NATURE_QA.csv` 中主图统计、源数据、最终尺寸和过度主张检查记录。
+- `MCM-Result/Review-Results/T6_VALIDATION_MATRIX.csv`：主张 x 六类检验 x R-id x 状态。
+- `MCM-Result/Review-Results/T6_ADVERSARIAL_REPORT.md`：攻击、失败、存活结论和降级建议。
+- 灵敏度/不确定性源表和图放 `MCM-Result/Data-Figures/`，验证脚本放 `Data-Scripts/`，干净重跑日志放 `Intermediate-Outputs/logs/`。
+- 更新后的 `MCM-Result/Intermediate-Outputs/RESULTS.md`、`CLAIM_LEDGER.csv`，以及 `Review-Results/FIGURE_EVIDENCE.csv`、`REVIEW_PASS_ITEMS.csv`。
+- `MCM-Result/Review-Results/NATURE_QA.csv` 中主图统计、源数据、最终尺寸和过度主张检查记录。
 
 ## Gate
 

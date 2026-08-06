@@ -87,8 +87,12 @@
 ## 四、复现验证（T6 必做）
 
 ```bash
-repro_dir=$(mktemp -d); unzip -q deliverables/submission/support.zip -d "$repro_dir/support"
-venv_dir=$(mktemp -d)/venv; python3 -m venv "$venv_dir"; "$venv_dir/bin/python" -m pip install -r "$repro_dir/support/requirements.txt"
+repro_dir="MCM-Result/Intermediate-Outputs/tmp/repro-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$repro_dir/support"
+unzip -q MCM-Result/Paper-Outputs/deliverables/submission/support.zip -d "$repro_dir/support"
+venv_dir="$repro_dir/venv"
+python3 -m venv "$venv_dir"
+"$venv_dir/bin/python" -m pip install -r "$repro_dir/support/requirements.txt"
 (cd "$repro_dir/support" && "$venv_dir/bin/python" run_all.py --all --seed 20260910 --state-dir "$repro_dir/state")
 # 逐项核对关键输出；再在主工作区用 run_all.py --confirm R-xxx --evidence <核对依据> --state-dir <主state_dir> 回填
 ```
@@ -100,7 +104,7 @@ venv_dir=$(mktemp -d)/venv; python3 -m venv "$venv_dir"; "$venv_dir/bin/python" 
 ## 五、交付物（Definition of Done 的物理形态）
 
 ```
-deliverables/
+MCM-Result/Paper-Outputs/deliverables/
 ├─ submission/                  # 电子提交只上传以下两个文件
 │  ├─ paper.pdf                 # 首页=摘要页，≤20MB
 │  └─ support.zip               # staging/support 的内容，≤20MB
@@ -165,15 +169,16 @@ deliverables/
 ## 七、机器终检参考命令
 
 ```bash
-paper=deliverables/submission/paper.pdf; support=deliverables/submission/support.zip
+paper=MCM-Result/Paper-Outputs/deliverables/submission/paper.pdf
+support=MCM-Result/Paper-Outputs/deliverables/submission/support.zip
 pdfinfo "$paper"; wc -c "$paper" "$support"                    # 各自必须 ≤20971520 bytes
 pdffonts "$paper"                                                # emb 列逐行必须为 yes
 pdftotext -layout "$paper" - | awk 'BEGIN{RS="\f"} /附录/{print "附录起始PDF页=" NR; exit}' # 应 ≤32
 for p in $(seq 1 "$(pdfinfo "$paper" | awk '/^Pages:/{print $2}')"); do printf '%s: ' "$p"; pdftotext -f "$p" -l "$p" -layout "$paper" - | tail -n 4 | tr '\n' ' '; echo; done # 核页码连续
 unzip -t "$support"                                               # 压缩包完整性
-python3 <skills-root>/mcm-gold/templates/verify_paper_contract.py --coverage workspace/PAPER_COVERAGE_LEDGER.csv --rubric workspace/T7_RUBRIC_REVIEW.csv --reader paper/main.pdf --submission paper/<problem>_submission.pdf --support-root deliverables/staging/support --source-root deliverables/staging/support/src --output workspace/T8_PAPER_CONTRACT.json
-grep -rInI -iE "学校|大学|学院|姓名|指导教师|队号|/Users/|/home/" deliverables/staging/support/
+python3 <skills-root>/mcm-gold/templates/verify_paper_contract.py --coverage MCM-Result/Review-Results/PAPER_COVERAGE_LEDGER.csv --rubric MCM-Result/Review-Results/T7_RUBRIC_REVIEW.csv --reader MCM-Result/Paper-Outputs/paper/main.pdf --submission MCM-Result/Paper-Outputs/paper/<problem>_submission.pdf --support-root MCM-Result/Paper-Outputs/deliverables/staging/support --source-root MCM-Result/Paper-Outputs/deliverables/staging/support/src --output MCM-Result/Review-Results/T8_PAPER_CONTRACT.json
+grep -rInI -iE "学校|大学|学院|姓名|指导教师|队号|/Users/|/home/" MCM-Result/Paper-Outputs/deliverables/staging/support/
 exiftool "$paper" | grep -iE "author|creator|producer|title"
-exiftool -r deliverables/staging/support/figures/ | grep -iE "author|comment|software"
+exiftool -r MCM-Result/Paper-Outputs/deliverables/staging/support/figures/ | grep -iE "author|comment|software"
 ```
 必须读取每条输出：命中身份词先人工判断是否为引用机构；正文 30 页以摘要为 PDF 第 1 页、附录最迟从第 32 页开始计算。无 `exiftool/pdffonts` 时记录工具缺失并改用 `pdfinfo` 加导出设置清空属性，不得直接勾选通过。

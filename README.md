@@ -21,6 +21,10 @@
 | `mcm-gold-t7-write` | T7 | SourceModel、论文、图表、DOCX/PPTX 和 H-004 |
 | `mcm-gold-t8-submit` | T8 | 清环境复现、内置 Nature 闭环、终检和 H-005 |
 
+## 输出目录
+
+所有竞赛工作输出统一写入当前工作目录的 `MCM-Result/`。skill 会在目录缺失时幂等创建以下七个英文子目录：`Reference-Papers/`、`Data-Scripts/`、`Competition-Materials/`、`Paper-Outputs/`、`Data-Figures/`、`Intermediate-Outputs/`、`Review-Results/`。不得在工作目录根部散落 `paper/`、`data/`、`src/` 等平行产物；完整映射见 `skills/mcm-gold/references/output-layout.md`。
+
 ## 内置 Nature 能力
 
 运行时不调用额外 `nature-*` skill。共享能力位于 `skills/mcm-gold/references/`：
@@ -36,7 +40,7 @@
 `skills/mcm-gold/references/literature-library.md` 收录五大方法族的经典方法出处
 （60 条，经 Crossref 逐条核验）与 30 篇本地全文清单。它服务于反幻觉铁律第 3 条：
 参考文献必须真实可访问，宁可少引不可编引。前沿方法的出处仍在 `frontier-cards.md` 源列。
-全文 PDF 不随仓库分发，默认置于训练区 `research/papers/`，由 T0 赛前预置。
+全文 PDF 不随仓库分发，默认置于任务工作区 `MCM-Result/Reference-Papers/papers/`，由 T0 赛前预置。
 
 阶段 skill 只读取本阶段需要的参考文件。优先级为：赛事规则与题面 > MCM 科学 Gate > 内置 Nature 质量规范 > 视觉风格。
 
