@@ -47,6 +47,83 @@ RUBRIC = [
     ("合规与附录", 3, 3, 3),
 ]
 
+# 深度机检（SPEC §2）引入后，默认夹具必须是一篇满足全部形态下限的"健康论文"：
+# 每问区间 ≥800 汉字且 ≥1 编号式、全文 ≥3 表、摘要 ≥550 字且 ≥4 处含单位数值、
+# 模型评价 ≥200 字、参考文献 ≥3 条、正文 ≥10000 汉字（配合 --reader-pages 18 不触线）。
+FILLER_SENTENCES = (
+    "本节从机理出发逐条建立变量关系，参数取值随式给出并标注单位，来源按题给数据、文献、拟合与估计四类逐句说明。",
+    "推导过程中相邻公式之间给出操作动词衔接句，对新引入的方程补充一句可解性论证，说明未知数个数与方程个数相匹配。",
+    "数值实验采用固定随机种子的重复运行，结果保留四位有效数字，与基线方案逐项对照，偏差均在工程可接受范围内。",
+    "灵敏度分析对关键参数施加百分之五扰动，记录最大偏差并给出判定句，逐条回收前文假设并说明其稳健性影响。",
+)
+ABSTRACT_BLOCK = (
+    "本文针对赛题三个问题建立机理驱动的数学模型，给出完整求解与检验流程。"
+    "问题一拟合误差 0.35 mm，单次求解耗时 12 秒；"
+    "问题二在正负 5% 扰动下最大偏差 2.1%，独立运行 50 次均收敛；"
+    "问题三样本量 1000 个，方案效率提升 1.8 倍，工作温度 25 ℃。"
+)
+EVALUATION_BLOCK = (
+    "优点：相位定义与拟合结果相互印证，灵敏度分析显示关键参数扰动下结论稳健，假设均已逐条回收；"
+    "缺点：边界段所述线性化假设在极端工况下精度下降，结果外推需结合对照实验谨慎使用。"
+)
+APPENDIX = (
+    "附录 A 支撑材料文件列表\n"
+    "solve.py\n"
+    "附录 B 完整源程序\n"
+    "solve.py\n"
+    "result = compute_solution(data, seed=2024)\n"
+)
+
+
+def filler_paragraphs(cycles: int) -> str:
+    """生成中性论证段落；刻意不含摘要/关键词/评价/参考文献/附录等定位标记词。"""
+    return "\n".join("".join(FILLER_SENTENCES) for _ in range(cycles)) + "\n"
+
+
+def build_healthy_reader() -> str:
+    """构造满足全部深度形态下限的合成阅读版正文。"""
+    return (
+        "2025 年赛题论文阅读版\n"
+        + "一、问题重述\n"
+        + filler_paragraphs(4)
+        + "二、问题分析\n"
+        + filler_paragraphs(4)
+        + "摘要\n"
+        + "\n".join([ABSTRACT_BLOCK] * 8)
+        + "\n关键词：数学建模；灵敏度分析；优化求解；稳健性检验\n"
+        + "三、问题一建模与求解\n"
+        + ANCHORS["interface"]
+        + "\n"
+        + filler_paragraphs(10)
+        + ANCHORS["definition"]
+        + "\n"
+        + filler_paragraphs(10)
+        + "y_i = a_0 + a_1 x_i + e_i (1)\n"
+        + "Phi = sum_i w_i y_i (2)\n"
+        + "min J(theta) s.t. g_k(theta) <= 0 (3)\n"
+        + ANCHORS["algorithm"]
+        + "\n"
+        + filler_paragraphs(10)
+        + ANCHORS["result"]
+        + "\n"
+        + filler_paragraphs(10)
+        + "表 1 主要结果与基线对照表\n"
+        + "表 2 灵敏度分析扰动结果表\n"
+        + "表 3 稳健性检验汇总表\n"
+        + ANCHORS["validation"]
+        + "\n"
+        + filler_paragraphs(8)
+        + ANCHORS["boundary"]
+        + "\n"
+        + filler_paragraphs(6)
+        + "四、模型的评价\n"
+        + "\n".join([EVALUATION_BLOCK] * 3)
+        + "\n五、参考文献\n"
+        + "[1] 张三, 李四. 数学建模方法导论. 高等教育出版社, 2020.\n"
+        + "[2] 王五. 灵敏度分析与稳健性检验综述. 应用数学学报, 2021.\n"
+        + "[3] 赵六. 优化模型数值求解方法. 计算数学, 2022.\n"
+    )
+
 
 def write_csv(path: Path, columns: list[str], rows: list[dict[str, object]]) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -69,17 +146,9 @@ class PaperContractTests(unittest.TestCase):
             "def solve(data):\n    result = compute_solution(data, seed=2024)\n    return result\n",
             encoding="utf-8",
         )
-        body = "\n".join(ANCHORS.values()) + "\n"
+        body = build_healthy_reader()
         self.reader.write_text(body, encoding="utf-8")
-        self.submission.write_text(
-            body
-            + "附录 A 支撑材料文件列表\n"
-            + "solve.py\n"
-            + "附录 B 完整源程序\n"
-            + "solve.py\n"
-            + "result = compute_solution(data, seed=2024)\n",
-            encoding="utf-8",
-        )
+        self.submission.write_text(body + APPENDIX, encoding="utf-8")
         self.coverage_rows = []
         for component, anchor in ANCHORS.items():
             self.coverage_rows.append(
@@ -151,10 +220,13 @@ class PaperContractTests(unittest.TestCase):
         self.assertEqual(report["rubric_total"], 91)
 
     def test_concise_complete_paper_only_warns(self) -> None:
+        # 触线（11 页 < 14）但深度形态项齐全：机检豁免留痕，不阻断 PASS。
         result, report = self.run_contract("--reader-pages", "11")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(report["status"], "PASS")
-        self.assertIn("DEPTH_REVIEW_REQUIRED", {item["code"] for item in report["warnings"]})
+        codes = {item["code"] for item in report["warnings"]}
+        self.assertIn("DEPTH_FORM_CHECKS_PASSED", codes)
+        self.assertIn("DEPTH_REVIEW_REQUIRED", codes)
 
     def test_missing_component_fails_contract(self) -> None:
         self.coverage_rows.pop()
@@ -247,18 +319,10 @@ class PaperContractTests(unittest.TestCase):
         self.assertIn("SCIENTIFIC_BODY_DRIFT", {item["code"] for item in report["errors"]})
 
     def test_pdf_formula_extraction_reordering_only_warns(self) -> None:
-        body = "\n".join(ANCHORS.values()) + "\n" + "共同科学正文" * 1000 + "公式ABC≥DEF\n"
+        body = self.reader.read_text(encoding="utf-8") + "公式ABC≥DEF\n"
         self.reader.write_text(body, encoding="utf-8")
         submission_body = body.replace("公式ABC≥DEF", "公式ABCDE≥F")
-        self.submission.write_text(
-            submission_body
-            + "附录 A 支撑材料文件列表\n"
-            + "solve.py\n"
-            + "附录 B 完整源程序\n"
-            + "solve.py\n"
-            + "result = compute_solution(data, seed=2024)\n",
-            encoding="utf-8",
-        )
+        self.submission.write_text(submission_body + APPENDIX, encoding="utf-8")
         result, report = self.run_contract()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(report["status"], "PASS")
@@ -294,6 +358,20 @@ class PaperContractTests(unittest.TestCase):
         result, report = self.run_contract()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(report["status"], "PROXY_REHEARSAL")
+
+    def test_thin_incomplete_paper_needs_expansion(self) -> None:
+        # 形态缺项的薄文必须 NEEDS_EXPANSION：页数/字数只是触发线，形态缺项才是阻断项。
+        thin_body = "\n".join(ANCHORS.values()) + "\n"
+        self.reader.write_text(thin_body, encoding="utf-8")
+        self.submission.write_text(thin_body + APPENDIX, encoding="utf-8")
+        result, report = self.run_contract()
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(report["status"], "NEEDS_EXPANSION")
+        codes = {item["code"] for item in report["expansion_items"]}
+        self.assertIn("QUESTION_PROSE_FLOOR", codes)
+        self.assertIn("QUESTION_EQUATION_FLOOR", codes)
+        self.assertIn("RESULT_TABLE_FLOOR", codes)
+        self.assertIn("REFERENCE_FLOOR", codes)
 
 
 if __name__ == "__main__":

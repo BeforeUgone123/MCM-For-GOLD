@@ -72,6 +72,24 @@ ID_RE = re.compile(rf"\b[CK]-{ID_SUFFIX}\b", re.IGNORECASE)
 RISK_ID_RE = re.compile(rf"\bK-{ID_SUFFIX}\b", re.IGNORECASE)
 VALIDATION_ID_RE = re.compile(rf"\b(?:R|P|V)-{ID_SUFFIX}\b", re.IGNORECASE)
 DECISION_ID_RE = re.compile(rf"\bD-{ID_SUFFIX}\b", re.IGNORECASE)
+CJK_RE = re.compile(r"[一-鿿]")
+EQUATION_NUMBER_RE = re.compile(r"[（(]\s*\d+(?:\.\d+)?\s*[)）]\s*$")
+TABLE_LABEL_RE = re.compile(r"表\s*(\d+(?:[-–.]\d+)?)")
+REFERENCE_ENTRY_RE = re.compile(r"^\s*\[\d+\]", re.MULTILINE)
+UNIT_VALUE_RE = re.compile(
+    r"\d+(?:\.\d+)?(?:\s*[×xX]\s*10[−–\-]?\d+)?\s*(?:"
+    r"µm|μm|um|nm|mm|cm|dm|km|kg|mg|kWh|kHz|MHz|GHz|Hz|kPa|MPa|GPa|Pa|kW|MW|kV|mV|mA"
+    r"|mol|min|rad|dB|lm|lx|km/h|m/s|°|◦|℃|%|‰"
+    r"|平方米|立方米|平方千米|千瓦时|摄氏度|毫米汞柱|毫升|微米|纳米|毫米|厘米|千米|公里|千克"
+    r"|万元|万吨|小时|分钟|米|克|吨|升|度|秒|天|年|月|日|个|件|台|次|倍|元|人|组|种|类|条|篇|页|行|字|万"
+    r"|[sgNtJWVAKmth](?![A-Za-zµμ]))"
+)
+ABSTRACT_HEADING = "摘要"
+ABSTRACT_ENDINGS = ("关键词", "关键字")
+EVALUATION_HEADINGS = ("模型的评价", "模型评价", "模型的优缺点", "模型优缺点")
+EVALUATION_BOUNDARIES = ("参考文献", "附录", "AI 工具使用声明", "AI 声明", "AI声明")
+REFERENCE_HEADING = "参考文献"
+APPENDIX_HEADING = "附录"
 
 
 def normalize(text: str) -> str:
@@ -130,6 +148,161 @@ def pdf_pages(path: Path) -> tuple[int | None, str | None]:
         return None, result.stderr.strip() or "pdfinfo 回读失败"
     match = re.search(r"^Pages:\s*(\d+)\s*$", result.stdout, re.MULTILINE)
     return (int(match.group(1)), None) if match else (None, "pdfinfo 未返回页数")
+
+
+def build_normalized_index(text: str) -> tuple[str, list[int]]:
+    """返回去空白并 casefold 的文本，以及归一化下标到原文偏移的映射。"""
+    chars: list[str] = []
+    positions: list[int] = []
+    for offset, char in enumerate(text):
+        if not char.isspace():
+            chars.append(char.casefold())
+            positions.append(offset)
+    return "".join(chars), positions
+
+
+def find_raw_position(norm_text: str, positions: list[int], snippet: str) -> tuple[int, int] | None:
+    needle = re.sub(r"\s+", "", snippet).casefold()
+    if not needle:
+        return None
+    index = norm_text.find(needle)
+    if index < 0:
+        return None
+    return positions[index], positions[index + len(needle) - 1] + 1
+
+
+def find_all_raw_positions(norm_text: str, positions: list[int], snippet: str) -> list[tuple[int, int]]:
+    needle = re.sub(r"\s+", "", snippet).casefold()
+    found: list[tuple[int, int]] = []
+    start = 0
+    while needle:
+        index = norm_text.find(needle, start)
+        if index < 0:
+            break
+        found.append((positions[index], positions[index + len(needle) - 1] + 1))
+        start = index + 1
+    return found
+
+
+def cjk_count(text: str) -> int:
+    return len(CJK_RE.findall(text))
+
+
+def count_numbered_equations(text: str) -> int:
+    return sum(1 for line in text.splitlines() if EQUATION_NUMBER_RE.search(line))
+
+
+def count_tables(text: str) -> int:
+    return len(set(TABLE_LABEL_RE.findall(text)))
+
+
+def count_references(reader_text: str, norm_text: str, positions: list[int]) -> tuple[int, bool]:
+    heading = find_raw_position(norm_text, positions, REFERENCE_HEADING)
+    if not heading:
+        return len(REFERENCE_ENTRY_RE.findall(reader_text)), False
+    end = len(reader_text)
+    appendix = find_raw_position(norm_text, positions, APPENDIX_HEADING)
+    if appendix and appendix[0] > heading[1]:
+        end = appendix[0]
+    return len(REFERENCE_ENTRY_RE.findall(reader_text[heading[1]:end])), True
+
+
+def locate_abstract(reader_text: str, norm_text: str, positions: list[int]) -> dict[str, object]:
+    result: dict[str, object] = {"located": False, "cjk_chars": None, "unit_values": None}
+    keyword = None
+    for marker in ABSTRACT_ENDINGS:
+        keyword = find_raw_position(norm_text, positions, marker)
+        if keyword:
+            break
+    if not keyword:
+        return result
+    headings = [span for span in find_all_raw_positions(norm_text, positions, ABSTRACT_HEADING) if span[1] <= keyword[0]]
+    if not headings:
+        return result
+    abstract = reader_text[headings[-1][1] : keyword[0]]
+    result.update(
+        located=True,
+        cjk_chars=cjk_count(abstract),
+        unit_values=len(UNIT_VALUE_RE.findall(abstract)),
+    )
+    return result
+
+
+def locate_evaluation(reader_text: str, norm_text: str, positions: list[int]) -> dict[str, object]:
+    result: dict[str, object] = {"located": False, "cjk_chars": None, "start": None}
+    reference = find_raw_position(norm_text, positions, REFERENCE_HEADING)
+    limit = reference[0] if reference else len(reader_text)
+    headings: list[tuple[int, int]] = []
+    for marker in EVALUATION_HEADINGS:
+        headings.extend(span for span in find_all_raw_positions(norm_text, positions, marker) if span[0] < limit)
+    if not headings:
+        return result
+    start = max(span[0] for span in headings)
+    end = limit
+    for marker in EVALUATION_BOUNDARIES:
+        boundary = find_raw_position(norm_text, positions, marker)
+        if boundary and start < boundary[0] < end:
+            end = boundary[0]
+    result.update(located=True, cjk_chars=cjk_count(reader_text[start:end]), start=start)
+    return result
+
+
+def locate_question_spans(
+    coverage_rows: list[dict[str, str]],
+    reader_text: str,
+    norm_text: str,
+    positions: list[int],
+    extra_boundaries: Iterable[int] = (),
+) -> dict[str, dict[str, object]]:
+    """用覆盖账本各行 paper_anchor 框定每问区间；定位失败的问只标记不伪造。"""
+    questions: dict[str, dict[str, object]] = {}
+    for row in coverage_rows:
+        entry = questions.setdefault(
+            row["question_id"], {"anchor_starts": [], "na_components": 0, "definition_na": False}
+        )
+        status = row["status"].upper()
+        component = row["component"].lower()
+        if status == "N_A":
+            entry["na_components"] += 1
+            if component == "definition":
+                entry["definition_na"] = True
+            continue
+        if component in NON_NA_COMPONENTS and row["paper_anchor"]:
+            found = find_raw_position(norm_text, positions, row["paper_anchor"])
+            if found:
+                entry["anchor_starts"].append(found[0])
+    starts = {question: min(item["anchor_starts"]) for question, item in questions.items() if item["anchor_starts"]}
+    ordered = sorted(starts, key=lambda question: starts[question])
+    tail_boundaries = list(extra_boundaries)
+    for marker in EVALUATION_BOUNDARIES:
+        found = find_raw_position(norm_text, positions, marker)
+        if found:
+            tail_boundaries.append(found[0])
+    spans: dict[str, tuple[int, int]] = {}
+    for index, question in enumerate(ordered):
+        start = starts[question]
+        if index + 1 < len(ordered):
+            end = starts[ordered[index + 1]]
+        else:
+            end = min((boundary for boundary in tail_boundaries if boundary > start), default=len(reader_text))
+        spans[question] = (start, end)
+    metrics: dict[str, dict[str, object]] = {}
+    for question, entry in questions.items():
+        span = spans.get(question)
+        item: dict[str, object] = {
+            "span_available": span is not None,
+            "na_components": entry["na_components"],
+            "prose_floor_exempt": entry["na_components"] > 2,
+            "equation_floor_exempt": bool(entry["definition_na"]),
+            "cjk_chars": None,
+            "numbered_equations": None,
+        }
+        if span is not None:
+            segment = reader_text[span[0] : span[1]]
+            item["cjk_chars"] = cjk_count(segment)
+            item["numbered_equations"] = count_numbered_equations(segment)
+        metrics[question] = item
+    return metrics
 
 
 def validate_coverage(
@@ -328,6 +501,149 @@ def validate_editions(
                     add_issue(errors, "SOURCE_CONTENT_NOT_EMBEDDED", f"提交版未回读到 {relative} 的代码内容")
 
 
+def assess_depth(
+    reader_text: str,
+    reader_pages: int | None,
+    coverage_rows: list[dict[str, str]] | None,
+    args: argparse.Namespace,
+    expansions: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> dict[str, object]:
+    """度量阅读版深度形态并执行 SPEC 门槛机检；触线才查形态项，定位失败只降级不伪造通过。"""
+    norm_text, positions = build_normalized_index(reader_text)
+    body_cjk = cjk_count(reader_text)
+    abstract = locate_abstract(reader_text, norm_text, positions)
+    evaluation = locate_evaluation(reader_text, norm_text, positions)
+    body_tables = count_tables(reader_text)
+    references, references_located = count_references(reader_text, norm_text, positions)
+    question_metrics = (
+        locate_question_spans(
+            coverage_rows,
+            reader_text,
+            norm_text,
+            positions,
+            extra_boundaries=[evaluation["start"]] if evaluation["located"] else [],
+        )
+        if coverage_rows
+        else {}
+    )
+
+    blocked: list[str] = []
+    if abstract["located"]:
+        if (
+            abstract["cjk_chars"] < args.min_abstract_chars
+            or abstract["unit_values"] < args.min_abstract_numbered_values
+        ):
+            add_issue(
+                expansions,
+                "ABSTRACT_DENSITY",
+                f"摘要汉字 {abstract['cjk_chars']} / 含单位数值 {abstract['unit_values']} 处，"
+                f"低于下限 {args.min_abstract_chars} 字 / {args.min_abstract_numbered_values} 处",
+            )
+    else:
+        blocked.append("摘要")
+        add_issue(warnings, "SPAN_UNAVAILABLE", "摘要区间定位失败（缺‘摘要/关键词’标记）；摘要密度退回人工核查，不伪造机检通过")
+    if evaluation["located"]:
+        if evaluation["cjk_chars"] < args.min_evaluation_chars:
+            add_issue(expansions, "EVALUATION_FLOOR", f"模型评价汉字 {evaluation['cjk_chars']} < 下限 {args.min_evaluation_chars}")
+    else:
+        blocked.append("模型评价")
+        add_issue(warnings, "SPAN_UNAVAILABLE", "模型评价区间定位失败；评价篇幅退回人工核查，不伪造机检通过")
+
+    trigger_reasons: list[str] = []
+    if reader_pages is not None and reader_pages < args.depth_trigger_pages:
+        trigger_reasons.append(f"阅读版 {reader_pages} 页 < 触发线 {args.depth_trigger_pages} 页")
+    if body_cjk < args.depth_trigger_chars:
+        trigger_reasons.append(f"正文汉字 {body_cjk} < 触发线 {args.depth_trigger_chars}")
+    triggered = bool(trigger_reasons)
+
+    form_failed = False
+    if triggered:
+        if not coverage_rows:
+            unavailable = ["<覆盖账本不可用>"]
+        else:
+            unavailable = [
+                question
+                for question, item in question_metrics.items()
+                if not item["span_available"] and not (item["prose_floor_exempt"] and item["equation_floor_exempt"])
+            ]
+        if unavailable:
+            blocked.append("每问区间")
+            add_issue(
+                warnings,
+                "SPAN_UNAVAILABLE",
+                f"{', '.join(unavailable)} 区间无法由覆盖账本 paper_anchor 定位；退回全量检查与人工核查，不伪造机检通过",
+            )
+        for question, item in question_metrics.items():
+            if not item["span_available"]:
+                continue
+            if not item["prose_floor_exempt"] and item["cjk_chars"] < args.min_question_chars:
+                form_failed = True
+                add_issue(
+                    expansions,
+                    "QUESTION_PROSE_FLOOR",
+                    f"{question} 建模求解区间汉字 {item['cjk_chars']} < 下限 {args.min_question_chars}",
+                )
+            if not item["equation_floor_exempt"] and item["numbered_equations"] < args.min_question_equations:
+                form_failed = True
+                add_issue(
+                    expansions,
+                    "QUESTION_EQUATION_FLOOR",
+                    f"{question} 区间编号公式 {item['numbered_equations']} < 下限 {args.min_question_equations}",
+                )
+        if body_tables < args.min_body_tables:
+            form_failed = True
+            add_issue(expansions, "RESULT_TABLE_FLOOR", f"全文表格 {body_tables} 张 < 下限 {args.min_body_tables}")
+        if references < args.min_references:
+            form_failed = True
+            add_issue(expansions, "REFERENCE_FLOOR", f"参考文献 {references} 条 < 下限 {args.min_references}")
+        pages_desc = f"{reader_pages} 页" if reader_pages is not None else "页数未知"
+        if not form_failed and not blocked:
+            add_issue(
+                warnings,
+                "DEPTH_FORM_CHECKS_PASSED",
+                f"触线（阅读版 {pages_desc} / 正文汉字 {body_cjk}）但深度形态核查全过；机检豁免留痕，H-004 仍须人工阅读 main.pdf 复核表达层",
+            )
+            add_issue(warnings, "DEPTH_REVIEW_REQUIRED", "触线但深度形态核查全过；页数不单独判失败，豁免以 DEPTH_FORM_CHECKS_PASSED 为准")
+        elif form_failed:
+            add_issue(
+                warnings,
+                "DEPTH_REVIEW_REQUIRED",
+                f"触线（阅读版 {pages_desc} / 正文汉字 {body_cjk}）且深度形态核查存在缺项，详见 expansion_items；页数不单独判失败",
+            )
+        else:
+            add_issue(
+                warnings,
+                "DEPTH_REVIEW_REQUIRED",
+                f"触线（阅读版 {pages_desc} / 正文汉字 {body_cjk}）但部分深度形态项定位失败（SPAN_UNAVAILABLE），须人工核查；页数不单独判失败",
+            )
+
+    return {
+        "reader_pages": reader_pages,
+        "body_cjk_chars": body_cjk,
+        "depth_triggered": triggered,
+        "trigger_reasons": trigger_reasons,
+        "questions": question_metrics,
+        "body_tables": body_tables,
+        "references": references,
+        "references_located": references_located,
+        "abstract": abstract,
+        "evaluation": evaluation,
+        "depth_form_checks_passed": triggered and not form_failed and not blocked,
+        "thresholds": {
+            "depth_trigger_pages": args.depth_trigger_pages,
+            "depth_trigger_chars": args.depth_trigger_chars,
+            "min_question_chars": args.min_question_chars,
+            "min_question_equations": args.min_question_equations,
+            "min_body_tables": args.min_body_tables,
+            "min_abstract_chars": args.min_abstract_chars,
+            "min_abstract_numbered_values": args.min_abstract_numbered_values,
+            "min_evaluation_chars": args.min_evaluation_chars,
+            "min_references": args.min_references,
+        },
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--coverage", type=Path, required=True)
@@ -337,10 +653,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-root", type=Path)
     parser.add_argument("--support-root", type=Path)
     parser.add_argument("--target-score", type=float, default=88)
-    parser.add_argument("--advisory-min-pages", type=int, default=18)
+    parser.add_argument("--advisory-min-pages", type=int, default=18, help="已废弃：深度触线改由 --depth-trigger-pages/--depth-trigger-chars 控制")
     parser.add_argument("--max-body-pages", type=int, default=30)
     parser.add_argument("--reader-pages", type=int)
     parser.add_argument("--submission-pages", type=int)
+    parser.add_argument("--depth-trigger-pages", type=int, default=14)
+    parser.add_argument("--depth-trigger-chars", type=int, default=10000)
+    parser.add_argument("--min-question-chars", type=int, default=800)
+    parser.add_argument("--min-question-equations", type=int, default=1)
+    parser.add_argument("--min-body-tables", type=int, default=3)
+    parser.add_argument("--min-abstract-chars", type=int, default=550)
+    parser.add_argument("--min-abstract-numbered-values", type=int, default=4)
+    parser.add_argument("--min-evaluation-chars", type=int, default=200)
+    parser.add_argument("--min-references", type=int, default=3)
     parser.add_argument("--appendix-required", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
@@ -388,11 +713,18 @@ def main() -> int:
         reader_pages, page_error = pdf_pages(args.reader)
         if page_error:
             add_issue(warnings, "PAGE_COUNT_UNAVAILABLE", page_error)
-    if reader_pages is not None:
-        if reader_pages > args.max_body_pages:
-            add_issue(errors, "READER_PAGE_LIMIT_EXCEEDED", f"阅读版 {reader_pages} 页 > 正文上限 {args.max_body_pages} 页")
-        elif reader_pages < args.advisory_min_pages:
-            add_issue(warnings, "DEPTH_REVIEW_REQUIRED", f"阅读版仅 {reader_pages} 页；页数不单独判失败，但须人工复核是否过度压缩")
+    if reader_pages is not None and reader_pages > args.max_body_pages:
+        add_issue(errors, "READER_PAGE_LIMIT_EXCEEDED", f"阅读版 {reader_pages} 页 > 正文上限 {args.max_body_pages} 页")
+    depth_metrics: dict[str, object] | None = None
+    if not reader_error:
+        depth_metrics = assess_depth(
+            reader_text,
+            reader_pages,
+            coverage_rows if not coverage_error else None,
+            args,
+            expansions,
+            warnings,
+        )
     submission_pages = args.submission_pages
     if submission_pages is None:
         submission_pages, page_error = pdf_pages(args.submission)
@@ -418,6 +750,7 @@ def main() -> int:
         "reader_pages": reader_pages,
         "submission_pages": submission_pages,
         "human_state": human_state,
+        "depth_metrics": depth_metrics,
         "errors": errors,
         "expansion_items": expansions,
         "warnings": warnings,

@@ -139,6 +139,12 @@
 
 T7 不另造重复评分表。专属分读取通过结构校验的固定七维 `T7_RUBRIC_REVIEW.csv`，按 `stage_specific_score = rubric_total * 0.7` 折算。七维原始阈值与单项及格线仍是独立硬门禁；新总分不能覆盖它们。T7 专属行使用 `level=DERIVED`，七项权重依次为 `10.5, 7, 17.5, 15.4, 9.1, 8.4, 2.1`，分数按对应原始维度得分比例计算。
 
+篇幅异常档位封顶：阅读版触及深度触发线（正文 <14 页或正文汉字 <10000，以 `T7_PAPER_CONTRACT.json` 的 `depth_metrics` 实测值为准）且契约未记录 `DEPTH_FORM_CHECKS_PASSED` 豁免时，`模型建立`与`求解与结果正确性`两维折算档位封顶 `VERIFIED_LIMITED`（得分比例取 min(原始比例, 0.8)），原始 rubric 得分再高也不得取满；已记录豁免则按实际比例折算。
+
+REPORT 强制对比小节：T7 的 REPORT.md 在固定顺序之外必须包含"每问实测页数/汉字数与预算对比"小节，数据取自 `T7_PAPER_CONTRACT.json` 的 `depth_metrics`，对照篇幅预算 target 列逐问列出实测与缺口；任一缺口写为 P1 finding，不得被总分掩盖。
+
+联动说明：`T7-G3` 已要求 T7 paper contract 通过，契约判 `NEEDS_EXPANSION`（每问正文、编号公式、结果表低于 floor，或摘要、模型评价密度不足）时该门禁自动 FAIL，无需新增硬门禁；触线但形态检查全过的豁免以契约记录的 `DEPTH_FORM_CHECKS_PASSED` 为准，H-004 仍须人工阅读实际 `main.pdf` 复核表达层。
+
 硬门禁：`T7-G1` 每问六项覆盖无 WEAK/MISSING；`T7-G2` 七维总分和单项达到原阈值；`T7-G3` T7 paper contract 通过；`T7-G4` 数字、图表、RESULTS 和引用一致；`T7-G5` 两版共享正文且提交版含真实清单和完整代码；`T7-G6` live 模式 H-004 已确认。
 
 ### T8 终检与提交

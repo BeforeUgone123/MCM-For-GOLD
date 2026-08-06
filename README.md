@@ -6,6 +6,8 @@
 
 当前版本是 `v2.4-paper-closure`，新增逐问论文覆盖账本、固定七维 rubric、同源阅读/提交双版本和 `verify_paper_contract.py`。已知题红灯、修复和页数负对照已实测；2026-08-05 经用户明确授权晋升为 live，未完成的前向 Gate 作为上线后验证债保留。
 
+本目录同时承载候选 `v2.6-writing-norms-candidate`（状态 `CANDIDATE_NOT_LIVE`，未同步 live、未发布）：在 v2.4 之上给论文契约增加行文深度机检（触线闭环 + 形态核查 + `NEEDS_EXPANSION`/`DEPTH_FORM_CHECKS_PASSED`），并在 rubric、stage review 与 T7 写作指令中加入篇幅预算与评审锚点。设计依据见 `mcm-gold-training/research/writing-norms-2026-08-06/SPEC.md`，验证结果与验证债见 `CANDIDATE_STATUS.md`。
+
 ## Skill 群
 
 | Skill | 阶段 | 专长 |
