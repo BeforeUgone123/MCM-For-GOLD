@@ -5,7 +5,7 @@ description: 数学建模竞赛 T6 检验与稳健性专家。用于执行正确
 
 # T6 检验与稳健性
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。本阶段的目标不是让所有结果“通过”，而是准确界定哪些结论能存活。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。本阶段的目标不是让所有结果“通过”，而是准确界定哪些结论能存活。
 
 ## 必需输入
 
@@ -39,6 +39,10 @@ description: 数学建模竞赛 T6 检验与稳健性专家。用于执行正确
 - 灵敏度/不确定性源表和图放 `MCM-Result/Data-Figures/`，验证脚本放 `Data-Scripts/`，干净重跑日志放 `Intermediate-Outputs/logs/`。
 - 更新后的 `MCM-Result/Intermediate-Outputs/RESULTS.md`、`CLAIM_LEDGER.csv`，以及 `Review-Results/FIGURE_EVIDENCE.csv`、`REVIEW_PASS_ITEMS.csv`。
 - `MCM-Result/Review-Results/NATURE_QA.csv` 中主图统计、源数据、最终尺寸和过度主张检查记录。
+
+## 独立 Review
+
+冻结 T6 产物后，必须由两名彼此独立且与 producer 不同上下文的 reviewer 盲审，按通用 30 分与 T6 专属 70 分核验 `T6-G1` 至 `T6-G5`。R2 在提交原始评分前不得读取 R1；FINAL 逐项取低，重大分歧转人类裁决。
 
 ## Gate
 

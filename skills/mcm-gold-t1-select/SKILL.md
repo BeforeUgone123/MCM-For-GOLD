@@ -5,7 +5,7 @@ description: 数学建模竞赛 T1 读题与选题专家。用于逐句拆解题
 
 # T1 读题与选题
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[人机责任边界](../mcm-gold/references/human-ai-charter.md)和[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)。本阶段优化的是“能否完整、可验证地答题”，不是方法名的新颖程度。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[人机责任边界](../mcm-gold/references/human-ai-charter.md)和[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)。本阶段优化的是“能否完整、可验证地答题”，不是方法名的新颖程度。
 
 ## 必需输入
 
@@ -31,6 +31,10 @@ description: 数学建模竞赛 T1 读题与选题专家。用于逐句拆解题
 - `MCM-Result/Review-Results/T1_FEASIBILITY_MATRIX.csv`：仅在待选模式生成。
 - `MCM-Result/Review-Results/T1_SELECTION_BRIEF.md`：推荐、次选、证据、风险和降级。
 - `MCM-Result/Intermediate-Outputs/DECISIONS.md`：定题 D-id、选择来源、被否题目和原因。
+
+## 独立 Review
+
+冻结 T1 产物后，由不同上下文 reviewer 按通用 30 分与 T1 专属 70 分评分，逐条核验 `T1-G1` 至 `T1-G4`。H-001 未确认时不因高分放行；review 三件套经 `verify_stage_review.py` 校验后才供总控读取。
 
 ## Gate
 

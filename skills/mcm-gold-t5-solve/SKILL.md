@@ -5,7 +5,7 @@ description: 数学建模竞赛 T5 主模型与求解专家。用于依据题型
 
 # T5 主模型与求解
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。只有 T4 Gate 通过后才按需读取[前沿方法卡](../mcm-gold/references/frontier-cards.md)。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。只有 T4 Gate 通过后才按需读取[前沿方法卡](../mcm-gold/references/frontier-cards.md)。
 
 ## 必需输入
 
@@ -39,6 +39,10 @@ description: 数学建模竞赛 T5 主模型与求解专家。用于依据题型
 - `MCM-Result/Review-Results/T5_BASELINE_COMPARISON.csv`、`T5_CANDIDATE_COVERAGE.md`。
 - `MCM-Result/Intermediate-Outputs/RESULTS.md`、`DECISIONS.md`、`ASSUMPTIONS.md` 与候选 claim 记录；figure review 记录放 `Review-Results/`。
 - 各正文 F-id 的 figure contract 与 `NATURE_QA.csv` 放 `Review-Results/`，source data 和 SVG/PDF/预览放 `Data-Figures/`，脚本放 `Data-Scripts/`。
+
+## 独立 Review
+
+冻结 T5 产物后，由不同上下文 reviewer 按通用 30 分与 T5 专属 70 分评分，逐条核验 `T5-G1` 至 `T5-G6`。方案判据是否在运行前锁定、基线是否同预算、结论是否越出支撑域均须读取时间戳和实际结果。
 
 ## Gate
 

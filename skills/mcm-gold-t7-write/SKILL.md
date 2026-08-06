@@ -5,7 +5,7 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 
 # T7 论文与图表
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[写作与评分](../mcm-gold/references/rubric-and-writing.md)、[可引用书目](../mcm-gold/references/literature-library.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[论文模板](../mcm-gold/templates/paper-templates.md)。从 T4 起滚动写作，不把写作留到最后。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[写作与评分](../mcm-gold/references/rubric-and-writing.md)、[可引用书目](../mcm-gold/references/literature-library.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[论文模板](../mcm-gold/templates/paper-templates.md)。从 T4 起滚动写作，不把写作留到最后。
 
 ## 必需输入
 
@@ -46,6 +46,10 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 - 从覆盖账本派生的 `MCM-Result/Review-Results/T7_ARGUMENT_AUDIT.md`、`NATURE_QA.csv`；`SOURCE_DATA_MAP.csv` 放 `Intermediate-Outputs/`。
 - 更新后的 claim 台账放 `Intermediate-Outputs/`，figure review 台账放 `Review-Results/`。
 - `MCM-Result/Review-Results/T7_H004_BRIEF.md`：结果解释、摘要结论、主图和剩余风险。
+
+## 独立 Review
+
+冻结 T7 产物后，必须由两名独立 reviewer 盲审。专属 70 分只从已校验的固定七维 `T7_RUBRIC_REVIEW.csv` 按 0.7 折算，不另造重复评分表；同时核验 `T7-G1` 至 `T7-G6`。R1/R2 逐项取低生成 FINAL，原 rubric 阈值、paper contract 和 H-004 均不得被总分覆盖。
 
 ## Gate
 

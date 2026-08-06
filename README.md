@@ -25,6 +25,10 @@
 
 所有竞赛工作输出统一写入当前工作目录的 `MCM-Result/`。skill 会在目录缺失时幂等创建以下七个英文子目录：`Reference-Papers/`、`Data-Scripts/`、`Competition-Materials/`、`Paper-Outputs/`、`Data-Figures/`、`Intermediate-Outputs/`、`Review-Results/`。不得在工作目录根部散落 `paper/`、`data/`、`src/` 等平行产物；完整映射见 `skills/mcm-gold/references/output-layout.md`。
 
+## 阶段 Review
+
+T0-T8 均采用独立 review：通用维度 30 分、阶段专属维度 70 分，同时保留不可被分数覆盖的硬门禁。评分只允许 `0/50%/80%/100%` 四档证据锚点；T6-T8 固定双 reviewer，其他阶段在临界分触发第二 reviewer，并逐项取低。每阶段在 `MCM-Result/Review-Results/` 输出 SCORE CSV、SUMMARY JSON 和 REPORT Markdown 三件套；规范与机器校验器分别位于 `stage-review-scoring.md` 和 `verify_stage_review.py`。
+
 ## 内置 Nature 能力
 
 运行时不调用额外 `nature-*` skill。共享能力位于 `skills/mcm-gold/references/`：

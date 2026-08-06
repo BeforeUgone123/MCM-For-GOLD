@@ -7,7 +7,8 @@
 3. 证据写入
 4. Gate 状态
 5. 人类签署
-6. 交接格式
+6. 独立 Review
+7. 交接格式
 
 ## 运行模式
 
@@ -37,6 +38,7 @@
 - 正文图表通过 `FIGURE_EVIDENCE.csv` 关联源表、脚本、主张、视觉核查和替代状态。
 - 内置 Nature 的 claim/source、图表、SourceModel 和 Office 检查写 `NATURE_QA.csv`；主张到原始/处理/图源文件的映射写 `SOURCE_DATA_MAP.csv`。
 - Gate 与终检实测写 `REVIEW_PASS_ITEMS.csv`；“已看过”“理论上可行”不是证据。
+- 阶段冻结后按 `stage-review-scoring.md` 生成独立 review 的 SCORE/SUMMARY/REPORT；原始 R1/R2 与 FINAL 只追加不覆盖。
 - 已冻结内容只通过 `FREEZE_CHANGE_LOG.md` 登记 supersession，不原地覆盖旧结论。
 
 ## Gate 状态
@@ -50,11 +52,15 @@
 | `NEEDS_HUMAN` | 证据已准备，等待 H 门或方向性裁决 | 不得把候选升级为最终结论 |
 | `BLOCKED` | 缺输入、工具、时间或科学证据，无法满足核心 Gate | 否；执行降级或请求用户决定 |
 
-不得使用 `DONE`、`基本完成`、`看起来通过` 等模糊状态。Gate 通过必须指向实际文件、R/S/D/H 编号和命令输出。
+不得使用 `DONE`、`基本完成`、`看起来通过` 等模糊状态。Gate 通过必须指向实际文件、R/S/D/H 编号和命令输出，并与 FINAL review 的分数、硬门禁及状态一致。
 
 ## 人类签署
 
 H-001 定题，H-002 路线和简化，H-003 事实与口径，H-004 表达与主图，H-005 提交授权。AI 可生成单一裁决简报，但不得代签。重大阻碍不采用复杂、脆弱或成本失衡的绕过方案；说明影响后询问用户。
+
+## 独立 Review
+
+producer 只提交冻结工件和自检，不生成正式得分。总控路由不同上下文 reviewer，执行通用 30 分、阶段专属 70 分、硬门禁和条件替代检查；需要双 review 时逐项取低。`verify_stage_review.py` 只验证结构与算术，不能替代 reviewer 对科学内容的判断。
 
 ## 交接格式
 
@@ -67,6 +73,10 @@ skill: mcm-gold-...
 inputs: <路径与哈希，或 UPSTREAM_MISSING>
 artifacts: <物理文件路径>
 evidence: <R/S/D/F/H/pass-id/NQ-id/DS-id>
+review_files: <Tn_REVIEW_SCORE_FINAL.csv; Tn_REVIEW_SUMMARY_FINAL.json; Tn_REVIEW_REPORT_FINAL.md>
+review_score: <total/100; universal/30; stage_specific/70>
+review_status: PASS | PASS_WITH_LIMITATIONS | NEEDS_HUMAN | BLOCKED
+hard_gates: <PASS/FAIL/PENDING_HUMAN 摘要>
 limitations: <无则 NONE>
 next_stage: <Tn/Tn+1/并行阶段>
 next_action: <唯一、可执行动作>

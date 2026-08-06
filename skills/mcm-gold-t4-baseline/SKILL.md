@@ -5,7 +5,7 @@ description: 数学建模竞赛 T4 基线模型专家。用于为第一问建立
 
 # T4 基线模型
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。先证明最小闭环，再追求复杂度。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。先证明最小闭环，再追求复杂度。
 
 ## 必需输入
 
@@ -35,6 +35,10 @@ description: 数学建模竞赛 T4 基线模型专家。用于为第一问建立
 - `MCM-Result/Intermediate-Outputs/RESULTS.md` 的 R-id、`CLAIM_LEDGER.csv` 的候选主张。
 - `MCM-Result/Review-Results/FIGURE_EVIDENCE.csv`、figure contract 与视觉 QA；源表和图放 `Data-Figures/`，脚本放 `Data-Scripts/`。
 - `MCM-Result/Paper-Outputs/paper/` 当前可交版本；有模板时包含回读通过的工作副本。
+
+## 独立 Review
+
+冻结 T4 产物后，由不同上下文 reviewer 按通用 30 分与 T4 专属 70 分评分，逐条核验 `T4-G1` 至 `T4-G4`。reviewer 必须实际重跑或回读重跑证据、打开首图并核对源表，不能依据 producer 的成功摘要打分。
 
 ## Gate
 

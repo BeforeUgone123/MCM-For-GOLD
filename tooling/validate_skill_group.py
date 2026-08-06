@@ -146,6 +146,16 @@ PAPER_CONTRACT_REQUIRED = {
         "DEPTH_REVIEW_REQUIRED",
     ],
 }
+STAGE_REVIEW_REQUIRED = [
+    "通用维度 30 分",
+    "阶段专属维度 70 分",
+    "MISSING",
+    "VERIFIED_LIMITED",
+    "逐项取较低分",
+    "T0-G1",
+    "T8-G7",
+    "Tn_REVIEW_SCORE_FINAL.csv",
+]
 OUTPUT_DIRECTORIES = [
     "Reference-Papers",
     "Data-Scripts",
@@ -216,6 +226,26 @@ def validate() -> list[str]:
         errors.append("missing templates/init_result_workspace.py")
     if "result_root: \"./MCM-Result\"" not in coordinator:
         errors.append("coordinator does not fix result_root to ./MCM-Result")
+
+    review_contract_path = (
+        SKILLS_ROOT / "mcm-gold" / "references" / "stage-review-scoring.md"
+    )
+    review_verifier = SKILLS_ROOT / "mcm-gold" / "templates" / "verify_stage_review.py"
+    if not review_contract_path.is_file():
+        errors.append("missing references/stage-review-scoring.md")
+    else:
+        review_contract = review_contract_path.read_text(encoding="utf-8")
+        for phrase in STAGE_REVIEW_REQUIRED:
+            if phrase not in review_contract:
+                errors.append(f"stage-review-scoring.md missing marker: {phrase}")
+    if not review_verifier.is_file():
+        errors.append("missing templates/verify_stage_review.py")
+    elif not review_verifier.read_text(encoding="utf-8").startswith(
+        "#!/usr/bin/env python3"
+    ):
+        errors.append("verify_stage_review.py missing Python shebang")
+    if "review:\n" not in coordinator or "conservative_merge: itemwise_min" not in coordinator:
+        errors.append("coordinator does not configure independent stage review")
 
     gates = (SKILLS_ROOT / "mcm-gold" / "references" / "adversarial-gates.md").read_text(
         encoding="utf-8"
@@ -294,6 +324,8 @@ def validate() -> list[str]:
         if name != "mcm-gold":
             if "../mcm-gold/references/output-layout.md" not in text:
                 errors.append(f"{name}: output layout contract not routed")
+            if "../mcm-gold/references/stage-review-scoring.md" not in text:
+                errors.append(f"{name}: stage review scoring contract not routed")
             if "../mcm-gold/references/stage-contract.md" not in text:
                 errors.append(f"{name}: stage contract not routed")
             if f"${name}" not in coordinator:

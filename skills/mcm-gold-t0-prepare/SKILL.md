@@ -5,7 +5,7 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 
 # T0 赛前准备
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[赛事规则](../mcm-gold/references/rules-2026.md)、[训练协议](../mcm-gold/references/training-protocol.md)和[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)。本阶段只建立可靠起点，不提前替正式赛题选择路线。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[赛事规则](../mcm-gold/references/rules-2026.md)、[训练协议](../mcm-gold/references/training-protocol.md)和[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)。本阶段只建立可靠起点，不提前替正式赛题选择路线。
 
 ## 必需输入
 
@@ -37,6 +37,10 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 - `MCM-Result/Review-Results/T0_NATURE_READINESS.md`：绘图后端状态、矢量导出、字体、Office 回读和降级路线。
 
 每个外部规则事实写 S-id，每个实际 smoke 结果写 R-id。不要把“命令存在”当作“已运行”。
+
+## 独立 Review
+
+冻结 T0 产物后，由不同上下文 reviewer 按契约的通用 30 分与 T0 专属 70 分评分，逐条核验 `T0-G1` 至 `T0-G4`。产出者只做自检；正式 R1、按条件触发的 R2 和 FINAL 三件套均写入 `MCM-Result/Review-Results/`，并通过 `verify_stage_review.py` 后方可进入 Gate。
 
 ## Gate
 

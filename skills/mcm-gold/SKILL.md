@@ -17,6 +17,7 @@ description: 全国大学生数学建模竞赛（CUMCM）全流程总控与阶�
 6. AI 只组织候选、证据和检查；人类负责题意、路线、事实、表达、披露和最终提交。
 7. live 模式必须 `human_in_loop=true`；无人演练只能标 `PROXY_REHEARSAL`，不得称为正式可提交。
 8. 所有工作输出统一写入当前工作目录的 `MCM-Result/`，并严格使用[输出目录契约](references/output-layout.md)规定的七个英文子目录；目录不存在时先初始化，不在根目录散落产物。
+9. 每阶段冻结产物后执行[独立 Review 评分契约](references/stage-review-scoring.md)；产出者不得给自己正式打分，分数不得覆盖硬门禁或人类签署。
 
 ## 生效配置
 
@@ -80,6 +81,14 @@ compliance:
   declare_ai: true
   anonymize: true
   similarity_guard: 25
+review:
+  schema_version: "1.0"
+  independent: true
+  universal_points: 30
+  stage_specific_points: 70
+  pass_score: 85
+  limited_score: 70
+  conservative_merge: itemwise_min
 output:
   max_body_pages: 30
   paper_file_mb: 20
@@ -98,7 +107,7 @@ output:
 - `RESULTS.md`：数值、命令、脚本、种子、时间戳与图表。
 - `Reference-Papers/SOURCES.md`：来源、等级、用途、摘录与获取时间。
 - `AI_USAGE.md`、`RISKS.md`、`HUMAN_SIGNOFFS.md`。
-- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`；`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv` 和阶段契约文件写入 `MCM-Result/Review-Results/`。
+- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`；`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv`、`Tn_REVIEW_*` 三件套和阶段契约文件写入 `MCM-Result/Review-Results/`。
 - `SKILL_USAGE.md`、`FREEZE_CHANGE_LOG.md`。
 - `NATURE_QA.csv`、`SOURCE_DATA_MAP.csv`：内置 Nature 质量检查和主张到数据文件的映射。
 
@@ -112,10 +121,12 @@ output:
 2. **SCOPE**：区分 `full_pipeline` 与 `stage_module`。局部入口允许缺上游，但必须显式记 `UPSTREAM_MISSING`，不得伪造已完成阶段。
 3. **ROUTE**：只调用当前主要缺口对应的一个阶段专家。T2/T3、T5/T7 可并行推进，但各自独立交接。
 4. **NATURE**：按 `references/nature-integrated-playbook.md` 直接执行本阶段的内置证据、图表、写作或交付规范；不调用外部 Nature skill。
-5. **VERIFY**：读取阶段专家和内置 Nature 产物的实际文件与命令输出；只接受 `PASS`、`PASS_WITH_LIMITATIONS`、`NEEDS_HUMAN`、`BLOCKED` 四种阶段状态。
-6. **SIGNOFF**：跨越 H-001 至 H-005 时生成单一裁决简报；live 模式等待人确认。
-7. **WRITE**：写回状态、Nature QA、台账和当前可交版本，再决定是否进入下一阶段。
-8. **REPORT**：输出不超过 10 行的阶段简报，不把“已计划”写成“已完成”。
+5. **VERIFY**：读取阶段专家和内置 Nature 产物的实际文件与命令输出。
+6. **REVIEW**：冻结本阶段工件，路由与 producer 不同上下文的 reviewer，按 `30+70` rubric 生成 R1；T6-T8 或 R1 总分 80-90 时盲审 R2，逐项取低生成 FINAL，并运行 `templates/verify_stage_review.py`。
+7. **STATUS**：同时读取分数、硬门禁与人类待决，只接受 `PASS`、`PASS_WITH_LIMITATIONS`、`NEEDS_HUMAN`、`BLOCKED` 四种阶段状态；三者冲突时取更严格结论。
+8. **SIGNOFF**：跨越 H-001 至 H-005 时生成单一裁决简报；live 模式等待人确认。
+9. **WRITE**：写回状态、Nature QA、review 三件套、台账和当前可交版本，再决定是否进入下一阶段。
+10. **REPORT**：输出不超过 10 行的阶段简报，不把“已计划”写成“已完成”。
 
 ## 阶段路由
 
@@ -172,6 +183,7 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 
 - 规则和披露：`references/rules-2026.md`
 - 输出目录：`references/output-layout.md`
+- 阶段评分：`references/stage-review-scoring.md`
 - 阶段交接：`references/stage-contract.md`
 - 证据冻结：`references/evidence-contract.md`
 - 方法和前沿卡：`references/methods-atlas.md`、`references/frontier-cards.md`
@@ -191,5 +203,6 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 4. 核验规则包时效、绝对 `result_root`/`state_dir`、真实时钟与 AI 披露义务。
 5. 初始化状态文件，定位当前阶段和一个主要缺口。
 6. 在 `MCM-Result/Review-Results/` 初始化 `NATURE_QA.csv`，在 `MCM-Result/Intermediate-Outputs/` 初始化 `SOURCE_DATA_MAP.csv`，确认内置 Nature 模式且不依赖外部 Nature skill。
-7. 路由到对应阶段专家并记录到 `SKILL_USAGE.md`。
-8. 输出首份阶段简报。
+7. 确认正式 review 可由不同 `reviewer_context_id` 执行；无法取得独立 reviewer 时记录 `INDEPENDENT_REVIEW_UNAVAILABLE`，阶段不得生成 FINAL 或自动晋级。
+8. 路由到对应阶段专家并记录到 `SKILL_USAGE.md`。
+9. 输出首份阶段简报。

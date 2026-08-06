@@ -5,7 +5,7 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 
 # T2 情报与数学形式化
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[调研路由](../mcm-gold/references/research-and-skill-routing.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[调研路由](../mcm-gold/references/research-and-skill-routing.md)、[方法图谱](../mcm-gold/references/methods-atlas.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。
 
 ## 必需输入
 
@@ -43,6 +43,10 @@ description: 数学建模竞赛 T2 情报检索与数学形式化专家。用于
 - `MCM-Result/Review-Results/T2_ROUTE_MATRIX.csv`：主、备、降级路线的证据、成本和失败条件。
 - `MCM-Result/Review-Results/T2_CLAIM_SOURCE_MAP.csv`：C-id、原文、claim 类型、边界、S-id、支撑等级和采用状态。
 - `MCM-Result/Intermediate-Outputs/ASSUMPTIONS.md`、`DECISIONS.md` 与 H-002/H-003 待核项。
+
+## 独立 Review
+
+冻结 T2 产物后，由不同上下文 reviewer 按通用 30 分与 T2 专属 70 分评分，逐条核验 `T2-G1` 至 `T2-G5`。reviewer 必须独立回读检索日志、S-id、形式化和路线矩阵；H-002/H-003 待决时状态只能为 `NEEDS_HUMAN`。
 
 ## Gate
 

@@ -5,7 +5,7 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 
 # T8 终检与提交
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[赛事规则](../mcm-gold/references/rules-2026.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。最后 8 小时不引入新模型；最后 4 小时冻结内容，只修复交付、合规和会导致误读的问题。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[赛事规则](../mcm-gold/references/rules-2026.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。最后 8 小时不引入新模型；最后 4 小时冻结内容，只修复交付、合规和会导致误读的问题。
 
 ## 必需输入
 
@@ -41,6 +41,10 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 - `MCM-Result/Intermediate-Outputs/reproduction/clean-<id>/`：解压、安装、运行和核对日志。
 - AI 披露文件、提交回执和下载复核记录放 `Paper-Outputs/`；`T8_H005_BRIEF.md` 放 `Review-Results/`。
 - `MCM-Result/Review-Results/NATURE_QA.csv` 终态、最终图表/Office 回读结果与 SourceModel 一致性记录；原始回读日志放 `Intermediate-Outputs/logs/`。
+
+## 独立 Review
+
+冻结 T8 候选包后，必须由两名独立 reviewer 盲审，按通用 30 分与 T8 专属 70 分核验 `T8-G1` 至 `T8-G7`。`pre_submit` 只能形成待 H-005 的 `NEEDS_HUMAN`；真实提交后必须以 `post_submit` 新 run 回读回执和下载哈希，才能生成最终结论。
 
 ## Gate
 

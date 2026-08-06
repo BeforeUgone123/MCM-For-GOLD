@@ -5,7 +5,7 @@ description: 数学建模竞赛 T3 数据审计专家。用于建立数据字典
 
 # T3 数据审计
 
-先读[输出目录契约](../mcm-gold/references/output-layout.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。本阶段不通过“清洗得更漂亮”来制造有利结论。
+先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[证据契约](../mcm-gold/references/evidence-contract.md)、[内置 Nature 证据与数据规范](../mcm-gold/references/nature-evidence-data.md)和[对抗门禁](../mcm-gold/references/adversarial-gates.md)。本阶段不通过“清洗得更漂亮”来制造有利结论。
 
 ## 必需输入
 
@@ -35,6 +35,10 @@ description: 数学建模竞赛 T3 数据审计专家。用于建立数据字典
 - `MCM-Result/Review-Results/T3_TEMPLATE_MAP.csv`：存在官方结果模板时生成。
 - `MCM-Result/Intermediate-Outputs/SOURCE_DATA_MAP.csv`：主张到原始/处理/图源数据及实际交付位置的映射。
 - `MCM-Result/Intermediate-Outputs/RESULTS.md` 中的数据审计 R-id 与 `ASSUMPTIONS.md` 中的口径假设。
+
+## 独立 Review
+
+冻结 T3 产物后，由不同上下文 reviewer 按通用 30 分与 T3 专属 70 分评分，逐条核验 `T3-G1` 至 `T3-G6`。无官方模板时必须执行 rubric 预设的替代检查，禁止删除项目或重分配权重。
 
 ## Gate
 
