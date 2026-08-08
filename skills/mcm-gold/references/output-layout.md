@@ -32,6 +32,8 @@ MCM-Result/
 上面「程序产生的数据、缓存和日志放入 `Intermediate-Outputs/`」一条此前没有任何机检，于是从未被执行。2025C 实测：`Data-Scripts/` 变成 408 MB / 14652 个文件，其中 407 MB 是 `.venv`，真实源码只有 16 个——人类打开源码目录第一眼看到的是虚拟环境。同期 `Paper-Outputs/paper/` 里 `.aux`/`.log` 与 `.tex` 混放。逐条落实：
 
 - **虚拟环境**放 `Intermediate-Outputs/venv/`，不放 `Data-Scripts/.venv`。`__pycache__`、`*.pyc`、`node_modules` 同理，一律不得出现在 `Data-Scripts/`、`Paper-Outputs/`、`Data-Figures/` 下。
+  Python 每跑一次就会在源码旁写 `__pycache__/`，靠事后清理必然反复失守；在跑之前设一次
+  `export PYTHONPYCACHEPREFIX="$PWD/Intermediate-Outputs/pycache"`（或 `PYTHONDONTWRITEBYTECODE=1`）即可从源头改道。
 - **LaTeX 中间产物**（`.aux .log .out .toc .fls .fdb_latexmk .synctex.gz .bbl .blg`）写到 `Intermediate-Outputs/`，不留在 `Paper-Outputs/`。留在那里会被误当成正式产物，也可能被打进支撑包。
 - **结果台账** `RESULTS.md` / `RESULTS.jsonl` MUST 落在 `Intermediate-Outputs/`。`run_all.py` 的 `STATE_DIR` 默认是相对 cwd 的 `workspace/`，从别的目录调用会把台账写到工作区之外；跑的时候显式传 `--state-dir` 或设 `MCM_STATE_DIR`。2025C 实测踩中：论文与终检契约都在，台账却被写进会话临时目录、跑完即消失，契约当时读到的 12 行事后无处可查——**结论仍然成立，但支撑它的证据链断了**。
 
