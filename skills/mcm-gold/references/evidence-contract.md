@@ -15,6 +15,10 @@
 ## 二、最小登记表
 
 - `RESULTS.jsonl/RESULTS.md`：数值、命令、输入哈希、种子、日志和验证。
+  **复现入口打印的值必须与台账同格式**（同精度、同字段、同顺序）。实测踩过：入口打印
+  `航向 177.76538403852268 deg` 而台账记 `航向 177.765 deg`，另一条入口少打印了「重叠」项——
+  两条数值其实完全相同，逐条比对却判成不一致，人只能退回去逐位核对，等于把机检退回人工。
+  台账登记哪几个量、保留几位，入口就打印哪几个量、保留几位。
 - `CLAIM_LEDGER.csv`：claim_id、位置、措辞、数值/单位、R/S/F-id、状态、人确认。
 - `FIGURE_EVIDENCE.csv`：figure_id、claim_id、源表/脚本/run、图注、视觉检查和边界。
 - `SOURCE_DATA_MAP.csv`：raw/processed/figure source/model output 到 C/R/S/F-id、实际文件和哈希的映射。
