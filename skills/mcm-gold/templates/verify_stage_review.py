@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -63,6 +64,30 @@ REQUIRED_COLUMNS = {
     "reviewed_at",
 }
 VAGUE_OBSERVATIONS = {"已检查", "质量良好", "符合要求", "通过", "pass"}
+
+# 阶段必读 references，与 SKILL.md「阶段必读文档」表同源。
+# 这些规范只以文档形式存在，漏读不会被任何其他检查发现——已实测出现过
+# 「18 份文档只读 2 份、机检全绿而写作/图表/文献规范全部落空」的失效模式。
+REQUIRED_DOCS = {
+    "T0": ["rules-2026.md", "output-layout.md", "nature-evidence-data.md", "human-ai-charter.md"],
+    "T1": ["rules-2026.md", "methods-atlas.md"],
+    "T2": ["methods-atlas.md", "frontier-cards.md", "literature-library.md", "nature-evidence-data.md"],
+    "T3": ["nature-evidence-data.md", "evidence-contract.md"],
+    "T4": ["nature-figures.md", "evidence-contract.md"],
+    "T5": ["methods-atlas.md", "frontier-cards.md", "nature-figures.md"],
+    "T6": ["adversarial-gates.md", "nature-evidence-data.md"],
+    "T7": ["rubric-and-writing.md", "nature-writing-office.md", "nature-figures.md", "literature-library.md"],
+    "T8": ["rules-2026.md", "adversarial-gates.md", "nature-writing-office.md"],
+}
+# 每阶段无条件必读。`stage-contract.md` 被全部 12 个 SKILL.md 的「先读…」引用、
+# 且 Gate 判定依赖它定义的交接字段，此前却不在任何机检清单里。
+DOC_GATE_UNIVERSAL = ["stage-review-scoring.md", "stage-contract.md"]
+# 「已读」不是落实。这一列要证明读进去了什么，写占位词与不登记等价。
+VAGUE_DOC_NOTES = {
+    "已读", "读过", "已阅读", "全文阅读", "已通读", "无", "n/a", "na", "-", "见文档",
+    "已登记", "ok", "done", "通过",
+}
+MIN_DOC_NOTE_CHARS = 8
 
 
 def as_decimal(value: object, field: str, errors: list[str]) -> Decimal:
@@ -186,6 +211,54 @@ def validate_score(path: Path, stage: str) -> tuple[list[str], dict[str, Decimal
     return errors, totals, metadata
 
 
+def validate_doc_gate(path: Path, stage: str) -> list[str]:
+    """校验 SKILL_USAGE.md 的必读文档登记表是否覆盖本阶段清单。
+
+    只认表格行，不认正文里提到文件名——「在别处写过这个词」不等于读过。
+    """
+    errors: list[str] = []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"DOC_GATE 无法读取 SKILL_USAGE: {exc}"]
+
+    required = REQUIRED_DOCS.get(stage, []) + DOC_GATE_UNIVERSAL
+    # 登记行形如： | <时间> | T7 | references/rubric-and-writing.md | 154 | <约束> | <落实位置> |
+    registered: dict[str, str] = {}
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 5:
+            continue
+        # 一份文档常被多个阶段共用（adversarial-gates.md 之于 T6/T8）。只认 `== stage`
+        # 会把 `T6,T8` 这类合并登记判成「未登记」，逼人把同一份文档抄成多行——
+        # 抄行不产生任何额外阅读，只会训练出应付门禁的习惯。
+        row_stages = {
+            token.strip().upper()
+            for token in re.split(r"[,，/、;；\s]+", cells[1])
+            if token.strip()
+        }
+        if stage not in row_stages and "*" not in row_stages:
+            continue
+        doc = cells[2].rsplit("/", 1)[-1]
+        note = cells[4]
+        if doc:
+            registered[doc] = note
+
+    for doc in required:
+        if doc not in registered:
+            errors.append(f"DOC_GATE 本阶段必读未登记: {doc}")
+            continue
+        note = registered[doc]
+        if note.strip().lower() in VAGUE_DOC_NOTES or len(note.strip()) < MIN_DOC_NOTE_CHARS:
+            errors.append(
+                f"DOC_GATE {doc} 的「关键约束」列为空洞占位（{note!r}），"
+                f"须写出本阶段实际要照做的条目"
+            )
+    return errors
+
+
 def expected_status(summary: dict[str, object], totals: dict[str, Decimal]) -> str:
     gates = summary.get("hard_gates", [])
     gate_statuses = {
@@ -195,6 +268,16 @@ def expected_status(summary: dict[str, object], totals: dict[str, Decimal]) -> s
         return "BLOCKED"
     if "PENDING_HUMAN" in gate_statuses or summary.get("review_conflict") is True:
         return "NEEDS_HUMAN"
+    # 演练场景下客观无法满足的门禁（如「本赛区附加要求」需向组委会查证）
+    # 与「忘记查」必须区分：前者记 REHEARSAL_NA，不判 BLOCKED，但也永不判 PASS。
+    if "REHEARSAL_NA" in gate_statuses:
+        if (
+            totals["total"] >= Decimal("70")
+            and totals["universal"] >= Decimal("18")
+            and totals["stage_specific"] >= Decimal("42")
+        ):
+            return "PASS_WITH_LIMITATIONS"
+        return "BLOCKED"
     if (
         totals["total"] >= Decimal("85")
         and totals["universal"] >= Decimal("24")
@@ -271,8 +354,18 @@ def validate_summary(
             if gate_id in actual_gates:
                 errors.append(f"SUMMARY hard gate 重复: {gate_id}")
             actual_gates.add(gate_id)
-            if gate.get("status") not in {"PASS", "FAIL", "PENDING_HUMAN"}:
+            if gate.get("status") not in {"PASS", "FAIL", "PENDING_HUMAN", "REHEARSAL_NA"}:
                 errors.append(f"SUMMARY {gate_id} status 非法")
+            if gate.get("status") == "REHEARSAL_NA":
+                if summary.get("run_mode") != "rehearsal":
+                    errors.append(
+                        f"SUMMARY {gate_id} 标 REHEARSAL_NA 但 run_mode 不是 rehearsal"
+                    )
+                if not str(gate.get("rehearsal_na_reason", "")).strip():
+                    errors.append(
+                        f"SUMMARY {gate_id} 标 REHEARSAL_NA 必须写 rehearsal_na_reason"
+                        "（为什么该门禁在演练中客观不可满足）"
+                    )
             evidence = gate.get("evidence")
             if not isinstance(evidence, list) or not any(str(item).strip() for item in evidence):
                 errors.append(f"SUMMARY {gate_id} 缺 evidence")
@@ -304,13 +397,29 @@ def main() -> None:
     parser.add_argument("--stage", required=True, choices=sorted(STAGE_CRITERIA))
     parser.add_argument("--score", required=True, type=Path)
     parser.add_argument("--summary", required=True, type=Path)
+    # 必读文档门禁没有旁路。曾有一个 `--no-doc-gate`，文档说「仅当阶段确无必读清单时才用」，
+    # 而 REQUIRED_DOCS 给 T0-T8 每个阶段都定义了非空清单、DOC_GATE_UNIVERSAL 还无条件追加——
+    # 也就是说它对任何合法调用都没有正当用途，却对所有阶段无条件可用，实测一个 flag 就能
+    # 让 doc_gate=SKIPPED、status=PASS、exit 0。零合法用途的旁路不需要被条件化，需要被移除。
+    parser.add_argument(
+        "--skill-usage",
+        required=True,
+        type=Path,
+        help="SKILL_USAGE.md 路径；校验本阶段必读文档登记。必传——省略它曾是绕开门禁的最短路径",
+    )
     args = parser.parse_args()
 
     errors, totals, metadata = validate_score(args.score, args.stage)
     if not errors:
         errors.extend(validate_summary(args.summary, args.stage, totals, metadata))
 
+    doc_errors = validate_doc_gate(args.skill_usage, args.stage)
+    errors.extend(doc_errors)
+    doc_gate = "FAIL" if doc_errors else "PASS"
+
     result = {
+        "doc_gate": doc_gate,
+        "required_docs": REQUIRED_DOCS.get(args.stage, []) + DOC_GATE_UNIVERSAL,
         "status": "FAIL" if errors else "PASS",
         "stage": args.stage,
         "score_file": str(args.score),

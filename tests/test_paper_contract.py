@@ -119,9 +119,15 @@ def build_healthy_reader() -> str:
         + "四、模型的评价\n"
         + "\n".join([EVALUATION_BLOCK] * 3)
         + "\n五、参考文献\n"
-        + "[1] 张三, 李四. 数学建模方法导论. 高等教育出版社, 2020.\n"
-        + "[2] 王五. 灵敏度分析与稳健性检验综述. 应用数学学报, 2021.\n"
-        + "[3] 赵六. 优化模型数值求解方法. 计算数学, 2022.\n"
+        # 反编造校验默认开启后，健康夹具的参考文献必须**真的可追溯**：三条均取自
+        # references/literature-library.md，分别覆盖 ISBN 命中与 DOI 命中两条路径。
+        # 用「张三/李四」这类占位条目会（正确地）判 REFERENCE_UNSOURCED。
+        + "[1] 姜启源, 谢金星, 叶俊. 数学模型(第五版). 高等教育出版社, 2018. ISBN 978-7-04-049222-4.\n"
+        + "[2] Sobol' I M. Global Sensitivity Indices for Nonlinear Mathematical Models and Their "
+        "Monte Carlo Estimates. Mathematics and Computers in Simulation, 2001, 55(1-3): 271-280. "
+        "doi:10.1016/S0378-4754(00)00270-6.\n"
+        + "[3] Dantzig G B, Wolfe P. Decomposition Principle for Linear Programs. "
+        "Operations Research, 1960, 8(1): 101-111. doi:10.1287/opre.8.1.101.\n"
     )
 
 
@@ -315,6 +321,54 @@ class PaperContractTests(unittest.TestCase):
             encoding="utf-8",
         )
         result, report = self.run_contract("--no-appendix-required")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SCIENTIFIC_BODY_DRIFT", {item["code"] for item in report["errors"]})
+
+    def test_fabricated_references_are_rejected_without_any_flag(self) -> None:
+        """反编造校验必须**默认**生效。
+
+        回归的是一处真实失效：`--literature-library` 曾是可选参数，不传就静默 SKIPPED，
+        而四处文档化的调用命令全都不传——照文档执行终检等于不校验参考文献。
+        """
+        body = self.reader.read_text(encoding="utf-8")
+        fabricated = body[: body.index("五、参考文献")] + (
+            "五、参考文献\n"
+            "[1] 张三, 李四. 数学建模方法导论. 高等教育出版社, 2020.\n"
+            "[2] 王五. 灵敏度分析与稳健性检验综述. 应用数学学报, 2021.\n"
+            "[3] 赵六. 优化模型数值求解方法. 计算数学, 2022.\n"
+        )
+        self.reader.write_text(fabricated, encoding="utf-8")
+        self.submission.write_text(fabricated + APPENDIX, encoding="utf-8")
+        result, report = self.run_contract()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("REFERENCE_UNSOURCED", {item["code"] for item in report["errors"]})
+        self.assertEqual(report["reference_check"]["unsourced"], 3)
+
+    def test_missing_library_blocks_and_reports_null_counts(self) -> None:
+        """「没查」与「查了没问题」必须在报告里可区分。
+
+        跳过时把计数写 0 会与「真查了、零条未溯源」字面完全一样，是最容易骗过人眼的一处；
+        且显式传入的库路径读不到属内容问题，必须阻断而不是留个 warning 放行。
+        """
+        result, report = self.run_contract("--literature-library", str(self.root / "no-such-lib.md"))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("REFERENCE_LIBRARY_UNREADABLE", {item["code"] for item in report["errors"]})
+        self.assertEqual(report["reference_check"]["status"], "SKIPPED")
+        self.assertIsNone(report["reference_check"]["unsourced"])
+        self.assertIsNone(report["reference_check"]["library_hits"])
+
+    def test_appendix_offset_tolerance_does_not_swallow_real_drift(self) -> None:
+        """APPENDIX_MARKER_OFFSET 只容忍附录标题字符，不容忍多出的正文。
+
+        回归的是一处门禁降级：该分支原本只判「前缀匹配 + 相似度 ≥0.995」，
+        于是任何追加到提交版末尾的正文都被当成截断偏移放行。
+        """
+        body = self.reader.read_text(encoding="utf-8")
+        self.submission.write_text(
+            body + "本文结论表明该策略在给定条件下最优且稳健可靠。" + APPENDIX,
+            encoding="utf-8",
+        )
+        result, report = self.run_contract()
         self.assertEqual(result.returncode, 1)
         self.assertIn("SCIENTIFIC_BODY_DRIFT", {item["code"] for item in report["errors"]})
 

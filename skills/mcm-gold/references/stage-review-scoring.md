@@ -213,6 +213,7 @@ review_id,stage,criterion_id,scope,criterion,weight,level,multiplier,score,obser
   "review_independence": "independent_context",
   "scores": {"universal": 0, "stage_specific": 0, "total": 0},
   "hard_gates": [{"gate_id": "T4-G1", "status": "PASS", "evidence": ["path#anchor"]}],
+  "run_mode": "live",
   "requires_second_review": false,
   "review_conflict": false,
   "status": "BLOCKED",
@@ -230,4 +231,25 @@ R1/R2 的 `review_independence` 只接受 `independent_context|independent_agent
 
 顺序固定为：阶段结论与总分、硬门禁、P0/P1/P2 findings、逐项扣分、前三项修复动作、限制与 handoff。finding 必须引用实际文件和锚点；没有问题时也要写剩余测试空白。
 
-运行 `templates/verify_stage_review.py` 校验 SCORE 与 SUMMARY 的字段、权重、证据档位、分数计算、硬门禁和状态映射。结构校验通过不代表科学判断正确。
+运行 `templates/verify_stage_review.py` 校验 SCORE 与 SUMMARY 的字段、权重、证据档位、分数计算、硬门禁、状态映射和本阶段必读文档登记。结构校验通过不代表科学判断正确。
+
+```bash
+python3 templates/verify_stage_review.py --stage T4 \
+  --score  MCM-Result/Review-Results/T4_REVIEW_SCORE_R1.csv \
+  --summary MCM-Result/Review-Results/T4_REVIEW_SUMMARY_R1.json \
+  --skill-usage MCM-Result/Intermediate-Outputs/SKILL_USAGE.md
+```
+
+### 硬门禁状态
+
+`hard_gates[].status` 取 `PASS|FAIL|PENDING_HUMAN|REHEARSAL_NA`。
+
+`REHEARSAL_NA` 只用于**演练场景下客观无法满足**的门禁——例如 T0-G2「本赛区附加要求」须向本校教务或赛区组委会查证，而演练没有赛区归属。它必须同时满足：`run_mode` 为 `rehearsal`，且该 gate 写明 `rehearsal_na_reason`。带 `REHEARSAL_NA` 的阶段**上限为 `PASS_WITH_LIMITATIONS`，永不判 `PASS`**。
+
+把「演练里查不到」记成 `FAIL` 会让整条流水线卡在一个与被测对象无关的门上；记成 `PASS` 则抹掉了真实比赛中必须补做的动作。这个状态存在的意义是把二者分开，而不是给漏查开后门——live 模式下使用它直接判错。
+
+### 必读文档门禁
+
+`--skill-usage` 指向 `SKILL_USAGE.md`，脚本核对其「必读文档登记」表是否覆盖 `SKILL.md` 中本阶段的必读清单，并拒收「已读」「符合要求」一类空洞占位。**该参数必传**，且门禁没有旁路：原先的 `--no-doc-gate` 已移除——它名义上「仅当阶段确无必读清单时使用」，而 T0–T8 每个阶段都有非空必读清单、`DOC_GATE_UNIVERSAL` 还无条件追加，因此它对任何合法调用都没有正当用途，实测一个 flag 即可让 `doc_gate=SKIPPED`、`status=PASS`、退出码 0。
+
+设立这道门的原因是实测失效：某次完整演练中 18 份 references 只被读了 2 份，写作 target、图表契约、文献纪律、反幻觉铁律全部落空，而所有机检仍然全绿——**没有任何既有检查能发现「规范没被读」**。

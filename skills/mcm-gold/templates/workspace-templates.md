@@ -90,10 +90,14 @@ C-001,摘要,<可核查结论>,<数值>,<单位>,R-001,S-001,F-001,candidate,H-0
 
 ## FIGURE_EVIDENCE.csv
 
+列与 `references/nature-figures.md` 的 figure contract **13 字段一一对应**，不得删列。该 contract 是**事前**约束：MUST 在写绘图代码前先填 `core_conclusion / role / archetype / backend / final_size / panel_map / evidence_hierarchy / statistics / image_integrity / reviewer_risk / caption_boundary`，画完后再补 `source_table / script / run_ids / visual_check`。画完再倒填全表等于把契约降级成事后描述，评审时无法区分「按结论选了图」与「按图编了结论」。
+
 ```csv
-figure_id,file,claim_ids,core_conclusion,panel_roles,backend,final_size,statistics,source_table,script,run_ids,caption_boundary,visual_check,status,updated_at
-F-001,MCM-Result/Data-Figures/example.pdf,C-001,<一句可证伪结论>,<主证据/验证/控制>,python,<栏宽×高度>,<n/区间/检验>,MCM-Result/Data-Figures/example.csv,MCM-Result/Data-Scripts/plot_example.py,R-001,<图能与不能说明什么>,<分辨率/遮挡/数值回读>,checked,2026-09-12T10:00:00+08:00
+figure_id,file,claim_ids,core_conclusion,role,archetype,backend,final_size,panel_map,evidence_hierarchy,statistics,source_table,script,run_ids,image_integrity,reviewer_risk,caption_boundary,visual_check,status,updated_at
+F-001,MCM-Result/Data-Figures/example.pdf,C-001,<一句含动词、可证伪的结论>,main_result,quantitative_grid,python,<栏宽×高度>,<a/b/c 各自唯一证据角色>,hero,<n/中心/区间/检验/校正>,MCM-Result/Data-Figures/example.csv,MCM-Result/Data-Scripts/plot_example.py,R-001,<裁剪/对比度/伪彩/拼接/复用；无处理写 none>,<最可能被评委攻击的点>,<图能与不能说明什么>,<分辨率/遮挡/数值回读>,checked,2026-09-12T10:00:00+08:00
 ```
+
+`role` 取 `discovery|method|main_result|comparison|validation|robustness|limitation`；`archetype` 取 `quantitative_grid|schematic_led|image_plus_quant|asymmetric_mixed`；`evidence_hierarchy` 取 `hero|validation|control`。`image_integrity` 不允许留空——没有任何图像处理时显式写 `none`，空值无法与「忘记检查」区分。
 
 ## PAPER_COVERAGE_LEDGER.csv
 
@@ -139,11 +143,23 @@ P-001,T4,销量约束残差,MCM-Result/Intermediate-Outputs/logs/solver.log,0,<=
 
 ## SKILL_USAGE.md
 
+两张表。第一张记 skill 调用，第二张记必读文档——**后者是硬门禁**，见 `SKILL.md`「阶段必读文档」。
+
 ```markdown
+## skill 调用
+
 | 时间 | 证据缺口 | 调用 skill | 产物 | 采用/否决 | 边界 |
 |---|---|---|---|---|---|
 | <ISO8601> | <为什么需要> | <skill-name> | <路径> | <采用/部分/否决+理由> | <不替代哪项人类判断> |
+
+## 必读文档登记
+
+| 时间 | 阶段 | 文档 | 行数 | 本阶段落实的关键约束 | 落实位置 |
+|---|---|---|---:|---|---|
+| <ISO8601> | T7 | references/rubric-and-writing.md | 154 | <逐条摘出本阶段要照做的条目，不写“已读”> | <文件/章节/台账行> |
 ```
+
+「本阶段落实的关键约束」列写「已读」「全文阅读」一类无信息内容，与未登记等价：这一列的作用是证明读进去了什么，而不是证明打开过文件。`verify_stage_review.py` 会核对本阶段必读清单是否逐份出现，并拒收空洞占位。
 
 ## NATURE_QA.csv
 

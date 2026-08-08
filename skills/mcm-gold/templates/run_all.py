@@ -15,7 +15,10 @@ import shlex
 import sys
 import time
 
-STATE_DIR = pathlib.Path("workspace")
+# 台账目录。默认相对 cwd 的 workspace/，让评委在支撑包根目录直接 `python run_all.py --all` 即可。
+# MCM_STATE_DIR 供工作区内的核验脚本指向真实台账：硬编码相对路径时，从别的目录调用
+# 会静默新建一个空 workspace/ 再报「未找到结果 ID」，把「路径不对」伪装成「数据不存在」。
+STATE_DIR = pathlib.Path(os.environ.get("MCM_STATE_DIR", "workspace"))
 HEADER = (
     "| ID | 内容 | 值/单位 | 输入 SHA-256 | 脚本/命令 | 种子 | 计算时间 | 核验时间 | 图表 | verify | 状态 |\n"
     "|---|---|---|---|---|---|---|---|---|---|---|\n"

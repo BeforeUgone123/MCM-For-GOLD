@@ -26,6 +26,14 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 9. 在 30 分钟时间盒内完成“读数据 -> 最小模型 -> 结果图 -> PDF -> 支撑包重跑”的烟雾测试。烟雾测试 MUST 在**全新目录 + 全新虚拟环境**下按支撑包 README 原文执行，验证的是"评委照说明能跑通"，不是"我们自己的机器能跑通"。
 10. 固化内置 Nature 工具链：确认 Python/R 绘图运行时、SVG/PDF 可编辑文本、字体回退、最终尺寸预览和矢量回读；`paper_format=word` 时同时实测 `officecli validate/view`。
 11. 不在 T0 替用户选择绘图后端。已有明确单语言工作流时记录；否则标 `UNCONFIRMED`，留到第一张正文图前只问“Python 还是 R？”。
+12. **预置文献库全文**。[可引用书目](../mcm-gold/references/literature-library.md)的「本地全文清单」逐条落到 `MCM-Result/Reference-Papers/papers/`——竞赛期间禁入域名收紧、网络不可靠，赛前不备赛中就没有。取文件只走 arXiv、出版社与学会开放页、机构知识库、大学/研究所官方域名的作者自存档；**先用 Crossref/arXiv/Unpaywall 核验书目真实存在，再找全文**；每篇下载后用 `pdftotext` 首页逐字核对标题/作者/年份/卷期页，文本层缺失的用 `pdftoppm` 渲染读图确认。取不到合法开放全文的**标 `~~文件名~~` 并写明原因，不下载非授权转载**。落盘后生成 `MANIFEST.sha256` 与 `ACQUISITION_LOG.md`（逐篇记来源 URL、版本性质、取证过程），再跑验收：
+
+    ```bash
+    python3 <skills-root>/mcm-gold/templates/verify_reference_papers.py \
+        --workspace MCM-Result --output MCM-Result/Review-Results/T0_LIBRARY_CHECK.json
+    ```
+
+    该脚本比对「书目表 `✔` 标记 / 清单声明 / 磁盘实际 / MANIFEST 哈希」四者，任一不一致即非零退出。**注意作者自存档的接受稿页码与刊载页码不一致**，此类条目在 `ACQUISITION_LOG.md` 标注版本性质，引用时只能用 DOI 与卷期页。
 
 ## 产物
 
@@ -35,6 +43,8 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 - `MCM-Result/Intermediate-Outputs/smoke/`：最小闭环的中间结果与重跑日志；代码、图和 PDF 分别归入对应固定目录。
 - `MCM-Result/Intermediate-Outputs/REHEARSAL_RECORD.md`：题目、污染边界、真实耗时、失败与时间盒校准。
 - `MCM-Result/Review-Results/T0_NATURE_READINESS.md`：绘图后端状态、矢量导出、字体、Office 回读和降级路线。
+- `MCM-Result/Reference-Papers/papers/`：文献库本地全文 + `MANIFEST.sha256` + `ACQUISITION_LOG.md`。
+- `MCM-Result/Review-Results/T0_LIBRARY_CHECK.json`：`verify_reference_papers.py` 的验收输出。
 
 每个外部规则事实写 S-id，每个实际 smoke 结果写 R-id。不要把“命令存在”当作“已运行”。
 
@@ -51,6 +61,7 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 - 30 分钟内从干净起点生成可打开 PDF，关键数值能从 `run_all` 重跑。
 - 中文字体、论文编译、求解器、匿名扫描和 AI 披露路径均有实际测试。
 - 内置 Nature 的绘图/导出/Office 适用能力已实测或明确标为 N/A/UNCONFIRMED，不假设可用。
+- **文献库全文已预置且通过 `verify_reference_papers.py`**（退出码 0）；未获得的条目已在库中标 `~~文件名~~` 并写明原因。库里标 `✔` 而磁盘无文件属伪造证据，直接判 FAIL。
 - 当前缺口有明确、低脆弱性的降级方案。
 
 未联网时设置 `research.online=false` 并返回限制；不得编造规则或来源。把 T1 所需题面入口、工具限制和剩余风险写入 `[HANDOFF T0]`。

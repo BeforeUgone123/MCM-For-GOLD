@@ -110,11 +110,21 @@
 | 《将数学建模思想融入数学类主干课程》 | 李大潜 | 2006 | 《中国大学教学》，2006(1): 9-11 |
 | 《确定组合预测权系数最优近似解的方法研究》 | 王明涛 | 2000 | 《系统工程理论与实践》，20(3): 104–109 |
 
-## 本地全文清单（30 篇）
+## 本地全文清单（计划 30 篇 / 实到 29 篇）
 
-默认路径 `MCM-Result/Reference-Papers/papers/`，由同目录 `MANIFEST.sha256` 锁定。**赛前由 T0 预置**：
+路径 `MCM-Result/Reference-Papers/papers/`，由同目录 `MANIFEST.sha256` 锁定，逐篇来源与核验记录见同目录 `ACQUISITION_LOG.md`。
+**赛前由 T0 预置**（执行步骤见 `mcm-gold-t0-prepare/SKILL.md`「文献库预置」；用 `templates/verify_reference_papers.py` 验收）：
 竞赛期间 CSDN/GitHub 等属禁入域名（见 `rules-2026.md` 检索纪律），
 arXiv、Crossref、出版社官网不受此限，但网络不可靠时本地全文是唯一保障。
+
+### 引用本地全文时的两条陷阱
+
+1. **作者稿 ≠ 刊载版**。以下 4 篇是作者自存档的接受稿/定稿手稿，PDF 页码与刊载页码**不对应**，
+   引用只能用 DOI 与卷期页（取自本表书目字段），**不得**照 PDF 页码写页码：
+   `2000-rockafellar-uryasev-cvar`（26 页手稿 vs 刊载 21-41）、`2001-breiman-random-forests`（33 页手稿 vs 刊载 5-32）、
+   `2018-esfahani-kuhn-wasserstein-dro`（arXiv 版 vs 刊载 171:115-166）、以及全部 arXiv 预印本条目。
+2. **`✔` 与磁盘必须一致**。本表 `✔` 由 `verify_reference_papers.py` 逐条比对 `MANIFEST.sha256` 与实际文件核验；
+   手工标 `✔` 而文件不在磁盘上，属于**伪造证据**，机检会判 `LIBRARY_FULLTEXT_MISSING` 并阻断。
 
 | 文件 | 用途 |
 |---|---|
@@ -124,7 +134,7 @@ arXiv、Crossref、出版社官网不受此限，但网络不可靠时本地全�
 | `1950-nash-equilibrium-points.pdf` | B 纳什均衡原始论文 |
 | `1960-kalman-linear-filtering-prediction.pdf` | C 卡尔曼滤波原始论文 |
 | `1967-macqueen-kmeans-classification.pdf` | D K-means 原始论文 |
-| `1979-mckay-beckman-conover-lhs.pdf` | E 拉丁超立方抽样原始论文 |
+| ~~`1979-mckay-beckman-conover-lhs.pdf`~~ | E 拉丁超立方抽样原始论文 —— **未获得（付费墙）**：书目经 Crossref + OSTI 5236110 双源核实为真（McKay, Beckman & Conover, *Technometrics* 21(2): 239-245, 1979, DOI `10.1080/00401706.1979.10489755`），但 Unpaywall 报 `oa_status=closed`，全网无合法开放副本。**只能引书目出处，不得转述其内容**；找到的非授权转载已主动放弃，理由见 `ACQUISITION_LOG.md` |
 | `1996-ester-dbscan-density-clusters.pdf` | D DBSCAN 原始论文 |
 | `1996-tibshirani-lasso.pdf` | C LASSO 原始论文 |
 | `1997-hochreiter-schmidhuber-lstm.pdf` | C LSTM 原始论文 |

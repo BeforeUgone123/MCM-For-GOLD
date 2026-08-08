@@ -122,7 +122,7 @@ output:
 3. **ROUTE**：只调用当前主要缺口对应的一个阶段专家。T2/T3、T5/T7 可并行推进，但各自独立交接。
 4. **NATURE**：按 `references/nature-integrated-playbook.md` 直接执行本阶段的内置证据、图表、写作或交付规范；不调用外部 Nature skill。
 5. **VERIFY**：读取阶段专家和内置 Nature 产物的实际文件与命令输出。
-6. **REVIEW**：冻结本阶段工件，路由与 producer 不同上下文的 reviewer，按 `30+70` rubric 生成 R1；T6-T8 或 R1 总分 80-90 时盲审 R2，逐项取低生成 FINAL，并运行 `templates/verify_stage_review.py`。
+6. **REVIEW**：冻结本阶段工件，路由与 producer 不同上下文的 reviewer，按 `30+70` rubric 生成 R1；T6-T8 或 R1 总分 80-90 时盲审 R2，逐项取低生成 FINAL，并运行 `templates/verify_stage_review.py`（该脚本同时校验本阶段必读文档登记，缺项直接判 FAIL）。
 7. **STATUS**：同时读取分数、硬门禁与人类待决，只接受 `PASS`、`PASS_WITH_LIMITATIONS`、`NEEDS_HUMAN`、`BLOCKED` 四种阶段状态；三者冲突时取更严格结论。
 8. **SIGNOFF**：跨越 H-001 至 H-005 时生成单一裁决简报；live 模式等待人确认。
 9. **WRITE**：写回状态、Nature QA、review 三件套、台账和当前可交版本，再决定是否进入下一阶段。
@@ -179,6 +179,32 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 | `红队` | 路由 `$mcm-gold-t6-validate` |
 | `终检`、`导出` | 路由 `$mcm-gold-t8-submit` |
 
+## 阶段必读文档（硬门禁）
+
+本 skill 的绝大多数规范以纯文档形式存在，**不读就等于不存在**：目录契约、评分表和机检脚本能自我暴露，方法、写作、检验、文献、图表规范不能。已实测的失效模式是「机检全绿、文档规范全部落空」，因此把「读过」本身做成可核验的门禁。
+
+进入某阶段前，MUST 逐份打开下表对应文档，并在 `SKILL_USAGE.md` 的**必读文档登记表**中登记实际读取（含文件、行数、本阶段将落实的关键约束条目）。**未登记的文档视为未读；该阶段 Gate 不得判 `PASS` 或 `PASS_WITH_LIMITATIONS`。**
+
+| 阶段 | 必读 references（除下表外，每阶段均含 `stage-review-scoring.md` 与 `stage-contract.md`） |
+|---|---|
+| T0（含启动） | `rules-2026.md`、`output-layout.md`、`nature-evidence-data.md`、`human-ai-charter.md` |
+| T1 | `rules-2026.md`、`methods-atlas.md` |
+| T2 | `methods-atlas.md`、`frontier-cards.md`、`literature-library.md`、`nature-evidence-data.md` |
+| T3 | `nature-evidence-data.md`、`evidence-contract.md` |
+| T4 | **`nature-figures.md`**、`evidence-contract.md` |
+| T5 | `methods-atlas.md`、`frontier-cards.md`、**`nature-figures.md`** |
+| T6 | **`adversarial-gates.md`**、`nature-evidence-data.md` |
+| T7 | **`rubric-and-writing.md`**、`nature-writing-office.md`、**`nature-figures.md`**、**`literature-library.md`** |
+| T8 | `rules-2026.md`、`adversarial-gates.md`、`nature-writing-office.md` |
+
+演练/晋升场景另需 `training-protocol.md`，但它不挂在任何阶段上，因此**不在机检清单内**——这一条靠人守。
+上表与 `templates/verify_stage_review.py` 的 `REQUIRED_DOCS` / `DOC_GATE_UNIVERSAL` 同源，改一处必须同步另一处；
+两者曾经不一致，「启动」行的三份文档因为没有对应 stage，在机检里根本不存在。
+
+粗体项是「一旦漏读就无法由机检发现」的文档：`nature-figures.md` 决定图能否成为证据，`rubric-and-writing.md` 的 target 与形态要求决定论文是合格还是国一，`literature-library.md` 决定参考文献是引用还是编造，`adversarial-gates.md` 承载反幻觉铁律。
+
+登记只记录**实际打开过**的文档。凭印象填表与不读等价，且更坏——它让缺口不可见。
+
 ## 共享参考
 
 - 规则和披露：`references/rules-2026.md`
@@ -204,5 +230,6 @@ live 模式只用真实墙钟。rehearsal 同时记录 `wall_used` 与 `logical_
 5. 初始化状态文件，定位当前阶段和一个主要缺口。
 6. 在 `MCM-Result/Review-Results/` 初始化 `NATURE_QA.csv`，在 `MCM-Result/Intermediate-Outputs/` 初始化 `SOURCE_DATA_MAP.csv`，确认内置 Nature 模式且不依赖外部 Nature skill。
 7. 确认正式 review 可由不同 `reviewer_context_id` 执行；无法取得独立 reviewer 时记录 `INDEPENDENT_REVIEW_UNAVAILABLE`，阶段不得生成 FINAL 或自动晋级。
-8. 路由到对应阶段专家并记录到 `SKILL_USAGE.md`。
-9. 输出首份阶段简报。
+8. 按「阶段必读文档」表打开本阶段全部必读 references，逐份登记到 `SKILL_USAGE.md` 的必读文档登记表；漏登记即视为未读，Gate 不得判 PASS。
+9. 路由到对应阶段专家并记录到 `SKILL_USAGE.md`。
+10. 输出首份阶段简报。

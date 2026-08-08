@@ -75,6 +75,7 @@ DECISION_ID_RE = re.compile(rf"\bD-{ID_SUFFIX}\b", re.IGNORECASE)
 CJK_RE = re.compile(r"[一-鿿]")
 EQUATION_NUMBER_RE = re.compile(r"[（(]\s*\d+(?:\.\d+)?\s*[)）]\s*$")
 TABLE_LABEL_RE = re.compile(r"表\s*(\d+(?:[-–.]\d+)?)")
+FIGURE_LABEL_RE = re.compile(r"图\s*(\d+(?:[-–.]\d+)?)")
 REFERENCE_ENTRY_RE = re.compile(r"^\s*\[\d+\]", re.MULTILINE)
 UNIT_VALUE_RE = re.compile(
     r"\d+(?:\.\d+)?(?:\s*[×xX]\s*10[−–\-]?\d+)?\s*(?:"
@@ -90,6 +91,26 @@ EVALUATION_HEADINGS = ("模型的评价", "模型评价", "模型的优缺点", 
 EVALUATION_BOUNDARIES = ("参考文献", "附录", "AI 工具使用声明", "AI 声明", "AI声明")
 REFERENCE_HEADING = "参考文献"
 APPENDIX_HEADING = "附录"
+# 附录起点标记。必须容忍排版引入的编号前缀：ctexart 的 \appendix 默认把标题排成
+# 「A 支撑材料文件列表」，字面量 "附录 A" 与 "附录A" 都不命中，截断点会落到编号之后。
+APPENDIX_MARKER_RE = re.compile(
+    r"附\s*录\s*[A-Za-z]?(?:\s*[.、])?\s*(?=支|\S)"
+    r"|(?:[A-Za-z]\s*[.、]?\s*)?支\s*撑\s*材\s*料\s*文\s*件\s*列\s*表"
+)
+# 截断点落在附录标题内部时，共享段会多带出标题**开头**的几个字符（如 ctexart 把
+# \appendix 排成「A 支撑材料文件列表」，正则命中「支」而漏掉前面的「附录A」）。
+# 这类偏移的尾巴只可能由附录标题自身的字符构成且极短；不加这条约束，任何追加到
+# 提交版末尾的正文都会被当成「截断偏移」放行——那是把 SCIENTIFIC_BODY_DRIFT
+# 这道门禁降级成 warning，实测 32 字结论句即可无声通过。
+APPENDIX_TAIL_RE = re.compile(r"[附录支撑材料文件列表a-z0-9.、]{1,12}")
+# 反编造的参考文献校验默认开启，库位置自锚到脚本旁；显式传参可覆盖。
+DEFAULT_LITERATURE_LIBRARY = (
+    Path(__file__).resolve().parent.parent / "references" / "literature-library.md"
+)
+# 参考文献条目的可解析标识。缺少全部三者的条目无法核验，等同于凭记忆书写。
+DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
+ISBN_RE = re.compile(r"ISBN[\s:]*[\d\-Xx]{10,17}")
+URL_RE = re.compile(r"https?://\S+")
 
 
 def normalize(text: str) -> str:
@@ -196,6 +217,10 @@ def count_tables(text: str) -> int:
     return len(set(TABLE_LABEL_RE.findall(text)))
 
 
+def count_figures(text: str) -> int:
+    return len(set(FIGURE_LABEL_RE.findall(text)))
+
+
 def count_references(reader_text: str, norm_text: str, positions: list[int]) -> tuple[int, bool]:
     heading = find_raw_position(norm_text, positions, REFERENCE_HEADING)
     if not heading:
@@ -205,6 +230,177 @@ def count_references(reader_text: str, norm_text: str, positions: list[int]) -> 
     if appendix and appendix[0] > heading[1]:
         end = appendix[0]
     return len(REFERENCE_ENTRY_RE.findall(reader_text[heading[1]:end])), True
+
+
+def extract_reference_entries(reader_text: str, norm_text: str, positions: list[int]) -> list[str]:
+    """按 [n] 切出参考文献区的逐条条目原文。"""
+    heading = find_raw_position(norm_text, positions, REFERENCE_HEADING)
+    start = heading[1] if heading else 0
+    end = len(reader_text)
+    appendix = find_raw_position(norm_text, positions, APPENDIX_HEADING)
+    if appendix and appendix[0] > start:
+        end = appendix[0]
+    block = reader_text[start:end]
+    marks = [match.start() for match in REFERENCE_ENTRY_RE.finditer(block)]
+    if not marks:
+        return []
+    bounds = marks + [len(block)]
+    return [block[bounds[i] : bounds[i + 1]].strip() for i in range(len(marks))]
+
+
+def load_library_index(path: Path) -> tuple[set[str], set[str], str | None]:
+    """从 literature-library.md 抽取可核验标识与题名。
+
+    只认表格行：库的正文散文里也会出现 DOI 示例，把它们当条目会放行编造的引用。
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return set(), set(), f"文献库不可读：{exc}"
+    identifiers: set[str] = set()
+    titles: set[str] = set()
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip().strip("`") for cell in line.strip().strip("|").split("|")]
+        for cell in cells:
+            identifiers.update(match.group(0).lower() for match in DOI_RE.finditer(cell))
+            identifiers.update(
+                re.sub(r"[^0-9Xx]", "", match.group(0)).lower() for match in ISBN_RE.finditer(cell)
+            )
+        for match in re.finditer(r"《([^》]+)》", line):
+            titles.add(normalize(match.group(1)).lower())
+        if len(cells) >= 2 and len(cells[1]) >= 12:
+            titles.add(normalize(cells[1]).lower())
+    if not identifiers and not titles:
+        return identifiers, titles, "文献库未解析到任何条目（表格结构可能已变更）"
+    return identifiers, titles, None
+
+
+def validate_references(
+    entries: list[str],
+    library_path: Path | None,
+    citation_log: Path | None,
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+    library_explicit: bool = True,
+) -> dict[str, object]:
+    """核验每条参考文献是否可追溯。
+
+    反幻觉铁律要防的正是「我记得这篇文献应该没错」：既不在库内、又没有任何
+    可解析标识的条目，与凭记忆书写在证据上不可区分，因此判 error 而非 warning。
+
+    未核验时各项计数一律置 None 而非 0：`"unsourced": 0` 与「真查了、零条未溯源」
+    字面完全一样，是这份报告最容易骗过人眼的一处。
+
+    `library_explicit` 区分库路径的来源——显式传入的路径读不到是**内容问题**（判 error），
+    默认路径不存在只是脚本被单独拷走的**环境布局问题**（判 warning 并换 code），
+    后者若一律判 error 会把一篇参考文献完全合规的论文判成 FAIL_CONTRACT。
+    """
+    summary: dict[str, object] = {
+        "checked": len(entries),
+        "library_hits": None,
+        "identifier_only": None,
+        "contest_sources": None,
+        "unsourced": None,
+    }
+    if library_path is None:
+        add_issue(errors, "REFERENCE_CHECK_SKIPPED", "未提供 --literature-library，参考文献可追溯性未核验")
+        summary["status"] = "SKIPPED"
+        return summary
+    if not library_path.is_file():
+        if library_explicit:
+            add_issue(errors, "REFERENCE_LIBRARY_UNREADABLE", f"指定的书目库不存在：{library_path}")
+            summary["status"] = "SKIPPED"
+        else:
+            add_issue(
+                warnings,
+                "REFERENCE_LIBRARY_DEFAULT_MISSING",
+                f"默认书目库不在脚本旁（{library_path}），参考文献可追溯性未核验。"
+                "脚本被单独拷贝时会出现这种情况，显式传 --literature-library 指定库位置",
+            )
+            summary["status"] = "SKIPPED"
+        return summary
+    identifiers, titles, library_error = load_library_index(library_path)
+    if library_error:
+        add_issue(errors, "REFERENCE_LIBRARY_UNREADABLE", library_error)
+        summary["status"] = "SKIPPED"
+        return summary
+
+    # 走到这里才是真的开始核验，计数从 0 起算——上面的 None 表示「未核验」。
+    summary.update(library_hits=0, identifier_only=0, contest_sources=0, unsourced=0)
+
+    log_text = ""
+    if citation_log is not None:
+        try:
+            log_text = citation_log.read_text(encoding="utf-8").lower()
+        except OSError as exc:
+            add_issue(warnings, "CITATION_LOG_UNREADABLE", f"实访记录不可读：{exc}")
+
+    for entry in entries:
+        label = entry[:60].replace("\n", " ")
+        # pdftotext 会在版心边界折行，把 DOI 和 ISBN 从中间截断。不先规整就会把
+        # 「著录规范、标识完整」的条目误判成「无法核验」——纪律不变，但判据必须
+        # 作用在完整字符串上。
+        compact = re.sub(r"[\s­‐-―]+", "", entry)
+        normalized = normalize(entry).lower()
+        # 句末标点会被 DOI/URL 的字符类吞掉（DOI 允许 '.'），比对时须剥离。
+        entry_ids = [match.group(0).lower().rstrip(".,;:)]") for match in DOI_RE.finditer(compact)]
+        entry_ids += [match.group(0).lower().rstrip(".,;:)]") for match in URL_RE.finditer(compact)]
+        entry_isbns = [
+            re.sub(r"[^0-9Xx]", "", match.group(0)).lower() for match in ISBN_RE.finditer(compact)
+        ]
+        hit_library = (
+            any(identifier in entry_ids for identifier in identifiers if identifier)
+            or any(identifier in entry_isbns for identifier in identifiers if identifier)
+            or any(title in normalized for title in titles if title)
+        )
+        has_identifier = bool(entry_ids) or bool(entry_isbns)
+        is_contest_source = any(
+            token in entry for token in ("数学建模竞赛", "赛题", "官方附件", "题面", "组委会")
+        )
+
+        if hit_library:
+            summary["library_hits"] = int(summary["library_hits"]) + 1
+        elif is_contest_source:
+            summary["contest_sources"] = int(summary["contest_sources"]) + 1
+            add_issue(warnings, "CONTEST_SOURCE_REFERENCE", f"题面/官方来源条目，豁免库校验：{label}")
+        elif has_identifier:
+            summary["identifier_only"] = int(summary["identifier_only"]) + 1
+            verified = bool(log_text) and any(entry_id in log_text for entry_id in entry_ids)
+            if verified:
+                add_issue(warnings, "REFERENCE_OUTSIDE_LIBRARY_VERIFIED", f"库外条目，已有实访记录：{label}")
+            else:
+                add_issue(
+                    warnings,
+                    "REFERENCE_NOT_IN_LIBRARY",
+                    f"库外条目且无实访记录，MUST 实访 https://doi.org/<DOI> 后登记到 SOURCES.md：{label}",
+                )
+        else:
+            summary["unsourced"] = int(summary["unsourced"]) + 1
+            add_issue(
+                errors,
+                "REFERENCE_UNSOURCED",
+                f"条目既不在 literature-library.md 内，也无 DOI/ISBN/URL 可核验：{label}",
+            )
+    summary["status"] = "CHECKED"
+    return summary
+
+
+def count_keywords(reader_text: str, norm_text: str, positions: list[int]) -> int | None:
+    """数摘要末尾的关键词个数；定位失败返回 None，不猜。"""
+    for marker in ABSTRACT_ENDINGS:
+        span = find_raw_position(norm_text, positions, marker)
+        if not span:
+            continue
+        tail = reader_text[span[1] : span[1] + 300]
+        tail = tail.lstrip("：: \t")
+        line = tail.split("\n\n")[0].splitlines()
+        joined = " ".join(part.strip() for part in line[:2])
+        parts = [part.strip() for part in re.split(r"[;；,，、]|\s{2,}", joined) if part.strip()]
+        if parts:
+            return len(parts)
+    return None
 
 
 def locate_abstract(reader_text: str, norm_text: str, positions: list[int]) -> dict[str, object]:
@@ -446,8 +642,7 @@ def validate_editions(
     warnings: list[dict[str, str]],
 ) -> None:
     if appendix_required:
-        markers = ["附录 A", "附录A", "支撑材料文件列表"]
-        positions = [submission_text.find(marker) for marker in markers if marker in submission_text]
+        positions = [match.start() for match in APPENDIX_MARKER_RE.finditer(submission_text)]
     else:
         positions = []
     if appendix_required and not positions:
@@ -469,8 +664,30 @@ def validate_editions(
                 "PDF_TEXT_ORDER_VARIANCE",
                 f"两版字符集合一致且文本相似度 {similarity:.6f}；判为 PDF 公式提取顺序差异，仍须保留同源正文哈希",
             )
+        elif (
+            similarity >= 0.995
+            and normalized_shared[: len(normalized_reader)] == normalized_reader
+            and APPENDIX_TAIL_RE.fullmatch(normalized_shared[len(normalized_reader):])
+        ):
+            # 截断点落在附录标题内部时，shared 会多带几个编号字符（如 ctexart 把
+            # \appendix 排成「A 支撑材料文件列表」）。正文本身逐字相同，差额只在尾部、
+            # 长度可忽略、且**全部由附录标题字符构成**，才判为截断位置偏移而非正文漂移
+            # ——否则报错会指向完全错误的原因。尾部一旦出现附录标题以外的字，说明提交版
+            # 真的比阅读版多了内容，必须落到下面的 SCIENTIFIC_BODY_DRIFT。
+            add_issue(
+                warnings,
+                "APPENDIX_MARKER_OFFSET",
+                f"共享正文为阅读版的前缀，尾部多出 {len(normalized_shared) - len(normalized_reader)} 字符"
+                f"（{normalized_shared[len(normalized_reader):][:12]!r}）；判为附录标题截断位置偏移，正文同源",
+            )
         else:
-            add_issue(errors, "SCIENTIFIC_BODY_DRIFT", "阅读版与提交版的共享科学正文不一致")
+            add_issue(
+                errors,
+                "SCIENTIFIC_BODY_DRIFT",
+                f"阅读版与提交版的共享科学正文不一致（相似度 {similarity:.6f}；"
+                f"阅读版 {len(normalized_reader)} 字符 / 共享段 {len(normalized_shared)} 字符）。"
+                "相似度接近 1 时优先检查附录标题排版是否使截断点偏移，而非正文内容差异",
+            )
     if not appendix_required:
         return
     if "源程序" not in submission_text:
@@ -529,11 +746,16 @@ def assess_depth(
     )
 
     blocked: list[str] = []
+    # 摘要与评价的形态项在触线之外无条件检查，但它们同样属于"深度形态核查"。
+    # 不计入 form_failed 会让报告同时出现 ABSTRACT_DENSITY 与 DEPTH_FORM_CHECKS_PASSED
+    # ——一边说摘要不达标，一边宣布形态全过并据此机检豁免。
+    form_failed = False
     if abstract["located"]:
         if (
             abstract["cjk_chars"] < args.min_abstract_chars
             or abstract["unit_values"] < args.min_abstract_numbered_values
         ):
+            form_failed = True
             add_issue(
                 expansions,
                 "ABSTRACT_DENSITY",
@@ -545,6 +767,7 @@ def assess_depth(
         add_issue(warnings, "SPAN_UNAVAILABLE", "摘要区间定位失败（缺‘摘要/关键词’标记）；摘要密度退回人工核查，不伪造机检通过")
     if evaluation["located"]:
         if evaluation["cjk_chars"] < args.min_evaluation_chars:
+            form_failed = True
             add_issue(expansions, "EVALUATION_FLOOR", f"模型评价汉字 {evaluation['cjk_chars']} < 下限 {args.min_evaluation_chars}")
     else:
         blocked.append("模型评价")
@@ -557,7 +780,6 @@ def assess_depth(
         trigger_reasons.append(f"正文汉字 {body_cjk} < 触发线 {args.depth_trigger_chars}")
     triggered = bool(trigger_reasons)
 
-    form_failed = False
     if triggered:
         if not coverage_rows:
             unavailable = ["<覆盖账本不可用>"]
@@ -644,6 +866,94 @@ def assess_depth(
     }
 
 
+def assess_targets(
+    depth: dict[str, object],
+    keywords: int | None,
+    figures: int,
+    warnings: list[dict[str, str]],
+) -> dict[str, object]:
+    """核查 rubric-and-writing.md §四的写作目标（target），与机检下限（floor）分开计。
+
+    floor 只在触线时检查、判 NEEDS_EXPANSION；target 无条件检查、只出 warning。
+    两者混为一谈是已实测的失效模式：本次演练 floor 全过而 target 8 项中 4 项、
+    逐问 3/5 未达标，契约却报零 error，容易被读成「论文已达国一水平」。
+    target 未达不阻断交付，但 MUST 留痕，让 H-004 知道差在哪。
+    """
+    gaps: list[dict[str, str]] = []
+
+    def record(code: str, message: str) -> None:
+        gaps.append({"code": code, "message": message})
+        add_issue(warnings, code, message)
+
+    def check_range(code: str, name: str, value: object, low: int, high: int | None, unit: str) -> None:
+        if value is None:
+            return
+        number = int(value)
+        if number < low:
+            record(code, f"{name} {number}{unit} < 写作目标下限 {low}{unit}")
+        elif high is not None and number > high:
+            record(code, f"{name} {number}{unit} > 写作目标上限 {high}{unit}")
+
+    pages = depth.get("reader_pages")
+    check_range("TARGET_READER_PAGES", "阅读版页数", pages, 19, 29, " 页")
+    check_range("TARGET_BODY_CHARS", "正文汉字", depth.get("body_cjk_chars"), 15000, None, " 字")
+    check_range("TARGET_BODY_TABLES", "全文三线表", depth.get("body_tables"), 4, None, " 张")
+    check_range("TARGET_BODY_FIGURES", "全文图", figures, 4, None, " 张")
+    check_range("TARGET_REFERENCES", "参考文献", depth.get("references"), 3, 8, " 条")
+
+    abstract = depth.get("abstract") or {}
+    if abstract.get("located"):
+        check_range("TARGET_ABSTRACT_CHARS", "摘要汉字", abstract.get("cjk_chars"), 600, 850, " 字")
+        check_range("TARGET_ABSTRACT_VALUES", "摘要含单位数值", abstract.get("unit_values"), 8, None, " 处")
+    if keywords is None:
+        add_issue(warnings, "KEYWORD_COUNT_UNAVAILABLE", "关键词个数定位失败，退回人工核查")
+    else:
+        check_range("TARGET_KEYWORDS", "关键词", keywords, 4, 5, " 个")
+
+    evaluation = depth.get("evaluation") or {}
+    if evaluation.get("located"):
+        check_range("TARGET_EVALUATION_CHARS", "模型评价汉字", evaluation.get("cjk_chars"), 230, 450, " 字")
+
+    questions = depth.get("questions") or {}
+    for question, item in questions.items():
+        if not item.get("span_available"):
+            continue
+        if not item.get("prose_floor_exempt"):
+            check_range(
+                "TARGET_QUESTION_PROSE", f"{question} 建模求解汉字", item.get("cjk_chars"), 1200, None, " 字"
+            )
+        if not item.get("equation_floor_exempt"):
+            check_range(
+                "TARGET_QUESTION_EQUATIONS",
+                f"{question} 编号公式",
+                item.get("numbered_equations"),
+                4,
+                None,
+                " 式",
+            )
+
+    return {
+        "status": "CHECKED",
+        "gap_count": len(gaps),
+        "gaps": gaps,
+        "keywords": keywords,
+        "figures": figures,
+        "targets": {
+            "reader_pages": "19-29",
+            "body_cjk_chars": ">=15000",
+            "question_cjk_chars": ">=1200",
+            "question_equations": ">=4",
+            "body_tables": ">=4",
+            "body_figures": ">=4",
+            "abstract_cjk_chars": "600-850",
+            "abstract_unit_values": ">=8",
+            "keywords": "4-5",
+            "evaluation_cjk_chars": "230-450",
+            "references": "3-8",
+        },
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--coverage", type=Path, required=True)
@@ -667,6 +977,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-evaluation-chars", type=int, default=200)
     parser.add_argument("--min-references", type=int, default=3)
     parser.add_argument("--appendix-required", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--literature-library",
+        type=Path,
+        default=DEFAULT_LITERATURE_LIBRARY,
+        help="references/literature-library.md 路径；核验每条参考文献可追溯。"
+        "默认取本脚本旁的 ../references/literature-library.md——反编造校验必须默认开启，"
+        "此前它是可选参数且四处文档化命令都不传，等于默认关闭",
+    )
+    parser.add_argument(
+        "--citation-log",
+        type=Path,
+        help="SOURCES.md 等实访记录；库外条目凭它证明 DOI 被实际访问过",
+    )
+    parser.add_argument(
+        "--target-check",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="核查 rubric-and-writing.md §四的写作目标；只出 warning，不阻断",
+    )
     parser.add_argument("--output", type=Path)
     return parser.parse_args()
 
@@ -725,11 +1054,41 @@ def main() -> int:
             expansions,
             warnings,
         )
+    reference_check: dict[str, object] | None = None
+    target_check: dict[str, object] | None = None
+    if not reader_error:
+        norm_text, positions = build_normalized_index(reader_text)
+        reference_check = validate_references(
+            extract_reference_entries(reader_text, norm_text, positions),
+            args.literature_library,
+            args.citation_log,
+            errors,
+            warnings,
+            library_explicit=args.literature_library != DEFAULT_LITERATURE_LIBRARY,
+        )
+        if args.target_check and depth_metrics is not None:
+            target_check = assess_targets(
+                depth_metrics,
+                count_keywords(reader_text, norm_text, positions),
+                count_figures(reader_text),
+                warnings,
+            )
+
     submission_pages = args.submission_pages
     if submission_pages is None:
         submission_pages, page_error = pdf_pages(args.submission)
         if page_error:
             add_issue(warnings, "SUBMISSION_PAGE_COUNT_UNAVAILABLE", page_error)
+
+    if not expansions:
+        # 深度诊断文案不得指向一个空列表：本轮若因 errors 提前失败而未产出 expansion
+        # 项，必须说明「为什么这里是空的」，否则读者会去查一个不存在的清单。
+        for warning in warnings:
+            if warning["code"] == "DEPTH_REVIEW_REQUIRED" and "expansion_items" in warning["message"]:
+                warning["message"] = warning["message"].replace(
+                    "详见 expansion_items",
+                    "本轮 expansion_items 为空（存在 errors 时深度形态项可能未能计算），先修 errors 再重跑契约",
+                )
 
     if errors:
         status = "FAIL_CONTRACT"
@@ -751,6 +1110,8 @@ def main() -> int:
         "submission_pages": submission_pages,
         "human_state": human_state,
         "depth_metrics": depth_metrics,
+        "reference_check": reference_check,
+        "target_check": target_check,
         "errors": errors,
         "expansion_items": expansions,
         "warnings": warnings,
