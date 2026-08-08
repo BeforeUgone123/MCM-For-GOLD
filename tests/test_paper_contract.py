@@ -308,6 +308,50 @@ class PaperContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("SOURCE_CONTENT_NOT_EMBEDDED", {item["code"] for item in report["errors"]})
 
+    def test_appendix_code_stale_when_source_edited_after_compile(self) -> None:
+        """改了源码却没重编论文：附录印的是旧代码，必须与「压根没嵌入」区分开报。
+
+        2025C 实测漏网场景——旧的 source_signature() 只抽最长一行做签名，那一行没动
+        就整份放行；实际交付的论文附录里是修复前跑不通的 nipt_core.py。
+        """
+        source = self.source / "solve.py"
+        original = source.read_text(encoding="utf-8")
+        source.write_text(
+            original + '\nDATA_ROOT = resolve_workspace_root(__file__, fallback="here")\n',
+            encoding="utf-8",
+        )
+        result, report = self.run_contract()
+        codes = {item["code"] for item in report["errors"]}
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("APPENDIX_CODE_STALE", codes)
+        self.assertNotIn("SOURCE_CONTENT_NOT_EMBEDDED", codes)
+        message = next(i["message"] for i in report["errors"]
+                       if i["code"] == "APPENDIX_CODE_STALE")
+        self.assertIn("resolve_workspace_root", message.replace(" ", ""))
+
+    def test_source_absent_from_appendix_is_not_reported_as_stale(self) -> None:
+        """一行都回读不到 = 根本没收录，与「收录了但过期」是两种毛病、两种修法。"""
+        body = self.reader.read_text(encoding="utf-8")
+        self.submission.write_text(
+            body + "附录 A 支撑材料文件列表\nsolve.py\n附录 B 完整源程序\nsolve.py\n",
+            encoding="utf-8",
+        )
+        result, report = self.run_contract()
+        codes = {item["code"] for item in report["errors"]}
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("SOURCE_CONTENT_NOT_EMBEDDED", codes)
+        self.assertNotIn("APPENDIX_CODE_STALE", codes)
+
+    def test_non_ascii_only_source_is_reported_unchecked_not_passed(self) -> None:
+        """没有可回读锚点时如实记「未核」，不得静默计为通过。"""
+        (self.source / "notes.py").write_text(
+            "# 全中文注释文件，没有可回读的 ASCII 行内锚点\n", encoding="utf-8")
+        self.submission.write_text(
+            self.submission.read_text(encoding="utf-8") + "notes.py\n", encoding="utf-8")
+        _, report = self.run_contract()
+        warning_codes = {item["code"] for item in report["warnings"]}
+        self.assertIn("SOURCE_CONTENT_NOT_CHECKABLE", warning_codes)
+
     def test_reader_submission_body_drift_fails(self) -> None:
         text = self.submission.read_text(encoding="utf-8")
         self.submission.write_text("提交版擅自改写正文\n" + text, encoding="utf-8")

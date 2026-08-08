@@ -730,6 +730,46 @@ def source_signature(path: Path) -> str | None:
     return max(candidates, key=len, default=None)
 
 
+ANCHOR_MIN_LEN = 16
+# 命中率低于此值判定为「根本没收录」，而不是「收录了但过期」。
+# 依据（2025C 实测三组）：版本一致 100%；版本过期（nipt_core.py 少了路径自锚定那几行）
+# 84.6%；根本没收录（build_paper.py 不在附录里）10%——后者的命中全部来自
+# `import subprocess` 这类通用行在别的文件中的偶然匹配。三组间距很宽，取 50% 居中。
+EMBEDDED_HIT_RATE = 0.5
+
+
+def source_anchors(path: Path, min_len: int = ANCHOR_MIN_LEN) -> list[str]:
+    """把源文件切成可在 PDF 里逐条回读的**行内**锚点，用于判定附录印的是不是当前版本。
+
+    为什么必须是行内片段而不是跨行滑窗：附录用 lstlisting 排版且 `numbers=left`，
+    行号数字会插在每行开头，跨行片段一定被打断；行内片段则不会——`breaklines` 折断
+    长行只插入空白，`normalize()` 去空白后仍连续。只取纯 ASCII 行，避开中文注释在
+    PDF 提取中的编码不确定性。
+
+    为什么不是「抽一行签名」：`source_signature()` 只取最长的一行，那一行没改动时，
+    附录里印的即使是整份旧代码也照样通过。2025C 实测正是这样漏掉的——修完
+    nipt_core.py 的路径逃逸后重打了支撑包却没重编论文，交付版附录印的仍是修复前、
+    跑不通的旧代码，而 code_check 比的是「支撑包 vs 工作区」，两边都是新版，全绿放行。
+    这同时踩中格式规范第五条（附录源程序须完整可运行）与第十一条（支撑材料须与论文相符）。
+
+    阈值依据（实测而非估计）：2025C 四个源文件 × min_len 12/16/24 共 12 组，
+    版本一致时命中率全部为 100.00%，提取噪声底为 0；版本不一致时缺失的恰是改动过的
+    那几行。故判据取「任何缺失都是真差异」，不设容错比例。
+    """
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return []
+    anchors: list[str] = []
+    for line in lines:
+        if not line.isascii():
+            continue
+        squashed = normalize(line)
+        if len(squashed) >= min_len:
+            anchors.append(squashed)
+    return anchors
+
+
 def visible_files(root: Path) -> Iterable[Path]:
     if not root.is_dir():
         return []
@@ -847,12 +887,69 @@ def validate_editions(
                 add_issue(errors, "NO_SOURCE_FILES", f"源程序目录没有可识别代码：{source_root}")
             for path in code_files:
                 relative = path.relative_to(source_root).as_posix()
-                if normalize(relative) not in normalized_submission and normalize(path.name) not in normalized_submission:
-                    add_issue(errors, "SOURCE_FILE_NOT_NAMED", f"提交版未出现源文件名：{relative}")
-                    continue
-                signature = source_signature(path)
-                if signature and normalize(signature) not in normalized_submission:
-                    add_issue(errors, "SOURCE_CONTENT_NOT_EMBEDDED", f"提交版未回读到 {relative} 的代码内容")
+                # 具名与内容分两个独立维度判定。原先「文件名没出现就 continue」会在
+                # 最该深查的情形下反而跳过内容核对，等于放弃了更强的判据。
+                named = (
+                    normalize(relative) in normalized_submission
+                    or normalize(path.name) in normalized_submission
+                )
+                anchors = source_anchors(path)
+                missing = (
+                    [anchor for anchor in anchors if anchor not in normalized_submission]
+                    if anchors else None      # None = 无从核对，区别于「核对通过」的空列表
+                )
+
+                # --- 内容维度 ---
+                if missing is None:
+                    add_issue(
+                        warnings,
+                        "SOURCE_CONTENT_NOT_CHECKABLE",
+                        f"{relative} 没有可回读的行内锚点（空文件或整份非 ASCII），"
+                        "本次未对其做附录内容核对",
+                    )
+                elif (hit_rate := 1 - len(missing) / len(anchors)) < EMBEDDED_HIT_RATE:
+                    # 命中率极低 = 根本没收录。少量命中来自 `import subprocess` 这类
+                    # 通用行在别的文件里的偶然匹配，不能据此说成「版本过期」——
+                    # 两者修法不同：一个要补 \lstinputlisting，一个要重编 PDF。
+                    add_issue(
+                        errors,
+                        "SOURCE_CONTENT_NOT_EMBEDDED",
+                        f"提交版未回读到 {relative} 的代码内容"
+                        f"（{len(anchors)} 条行内锚点仅命中 {len(anchors) - len(missing)} 条，"
+                        f"{hit_rate:.0%}，低于 {EMBEDDED_HIT_RATE:.0%} 即判定为未收录）。"
+                        "若该文件本就不该进附录（如纯排版脚本），应把它移出 --source-root 的范围。",
+                    )
+                elif missing:
+                    sample = "；".join(m[:60] for m in missing[:3])
+                    add_issue(
+                        errors,
+                        "APPENDIX_CODE_STALE",
+                        f"提交版附录里的 {relative} 不是当前版本："
+                        f"{len(anchors)} 条行内锚点缺 {len(missing)} 条（命中 {hit_rate:.0%}），"
+                        f"例如 {sample}。通常是改了源码却没重编论文 PDF——"
+                        "附录印的代码与支撑包发出去的不是同一份，触发格式规范第五条与第十一条。"
+                        "修法：重跑 build_paper.py 后重新生成交付物。",
+                    )
+
+                # --- 具名维度 ---
+                if not named:
+                    if missing == []:
+                        # 代码逐行都回读到了，只是没在文件列表/小节标题里单独具名。
+                        # 实测触发场景：附录标题写成「src/p1.py … src/p4.py（各问入口）」，
+                        # 于是 p3.py 这个串全文没出现，但它的源码明明白白印在附录里。
+                        # 这不构成取消资格风险，报 error 属误报；但文件列表该补，故留 warning。
+                        add_issue(
+                            warnings,
+                            "SOURCE_FILE_NOT_NAMED",
+                            f"提交版未单独出现源文件名 {relative}，但其代码已逐行回读到；"
+                            "建议在支撑材料文件列表中逐个具名，避免评委按文件名核对时对不上",
+                        )
+                    else:
+                        add_issue(
+                            errors,
+                            "SOURCE_FILE_NOT_NAMED",
+                            f"提交版未出现源文件名：{relative}",
+                        )
 
 
 def assess_depth(
