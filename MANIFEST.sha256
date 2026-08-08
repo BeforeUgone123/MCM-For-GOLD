@@ -16,7 +16,7 @@ ba0e43b06d7cd9a4f1aae907a8a9299c8862e15f55da6116b373475e48f32cff  skills/mcm-gol
 7b3cda9a0d3cd77843783d15645443236ac25c63e26be41a68b142c905014bc8  skills/mcm-gold-t5-solve/agents/openai.yaml
 6761bdd4ec39b1a36ee547038d433dec682acab3f49576de0e129e332e5cc3b2  skills/mcm-gold-t5-solve/SKILL.md
 7739f7a645d4217b33700e1b8dc3733bb123f6f8eb7c589e9eabcd7a462c80b6  skills/mcm-gold-t6-validate/agents/openai.yaml
-28a9cf28dcf5ba4c23c9459dbabed68a599b36ccd7cf70c945bbb6538f951b25  skills/mcm-gold-t6-validate/SKILL.md
+45cb1e39a18b214ca64b2ecf6b82d0b253731ffd729264ad8d0c36fa02365654  skills/mcm-gold-t6-validate/SKILL.md
 808c05229d061a36a3c4a5fdbb568e2cf3959f1548b47acd101ee098757f72e8  skills/mcm-gold-t7-write/agents/openai.yaml
 5c0e1e64e52fa4386298410bfa6723867ff28214d19b6819fd4582ed4cba06ea  skills/mcm-gold-t7-write/SKILL.md
 3744b3cd50c95c41dde642782b14426d21531ab1a730d1d856be3bd581138e08  skills/mcm-gold-t8-submit/agents/openai.yaml
