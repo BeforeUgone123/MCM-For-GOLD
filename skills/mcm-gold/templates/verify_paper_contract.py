@@ -334,6 +334,59 @@ def validate_results_ledger(
     }
 
 
+def validate_pagination(
+    path: Path,
+    text: str,
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> dict[str, object] | None:
+    """核验页码自第 1 页起连续。
+
+    规则第 42 条「摘要专用页（从此页起编页码）」+ 第 44 条「阿拉伯数字从 1 连续编号」。
+    实测踩过的坑：LaTeX 模板在摘要后写了 \\setcounter{page}{1}，结果摘要标 1–2、
+    正文又从 1 重新计，全文两套页码。终检清单里这一条此前全靠人眼翻页。
+
+    判据只认每页最后一行且整行为纯数字的页脚——正文里的章节号、公式号、表号都可能
+    是孤立数字，放宽判据会把它们当页码，产出大量假报。
+    """
+    if path.suffix.lower() != ".pdf" or not path.is_file():
+        return None
+    pages = text.split("\f")
+    if pages and not pages[-1].strip():
+        pages = pages[:-1]
+    numbered: dict[int, int] = {}
+    for index, page in enumerate(pages, start=1):
+        lines = [line.strip() for line in page.splitlines() if line.strip()]
+        if lines and re.fullmatch(r"\d{1,3}", lines[-1]):
+            numbered[index] = int(lines[-1])
+    if not numbered:
+        add_issue(warnings, "PAGINATION_NOT_DETECTED", f"{path.name} 未识别到页脚页码，需人工核对")
+        return {"status": "SKIPPED", "pages": len(pages), "numbered": None, "mismatched": None}
+    mismatched = [
+        {"pdf_page": index, "footer": value}
+        for index, value in sorted(numbered.items())
+        if value != index
+    ]
+    if mismatched:
+        add_issue(
+            errors,
+            "PAGINATION_DISCONTINUOUS",
+            f"{path.name} 页脚页码与 PDF 页序不一致（前几处：{mismatched[:4]}）。"
+            "规则要求自摘要页起从 1 连续编号；常见原因是模板在摘要后重置了 page 计数器",
+        )
+    missing = [i for i in range(1, len(pages) + 1) if i not in numbered]
+    if missing:
+        add_issue(
+            warnings,
+            "PAGINATION_MISSING_ON_PAGES",
+            f"{path.name} 第 {missing[:6]} 页未识别到页脚页码",
+        )
+    return {
+        "status": "CHECKED", "pages": len(pages), "numbered": len(numbered),
+        "mismatched": mismatched, "missing": missing[:10],
+    }
+
+
 def validate_references(
     entries: list[str],
     library_path: Path | None,
@@ -1146,6 +1199,7 @@ def main() -> int:
     reference_check: dict[str, object] | None = None
     target_check: dict[str, object] | None = None
     results_check: dict[str, object] | None = None
+    pagination_check: dict[str, object] | None = None
     if not reader_error:
         norm_text, positions = build_normalized_index(reader_text)
         reference_check = validate_references(
@@ -1155,6 +1209,9 @@ def main() -> int:
             errors,
             warnings,
             library_explicit=args.literature_library != DEFAULT_LITERATURE_LIBRARY,
+        )
+        pagination_check = validate_pagination(
+            args.submission, submission_text, errors, warnings
         )
         results_check = validate_results_ledger(
             args.results_ledger, reader_text, errors, warnings
@@ -1205,6 +1262,7 @@ def main() -> int:
         "depth_metrics": depth_metrics,
         "reference_check": reference_check,
         "results_check": results_check,
+        "pagination_check": pagination_check,
         "target_check": target_check,
         "errors": errors,
         "expansion_items": expansions,

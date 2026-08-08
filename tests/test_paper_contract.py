@@ -489,3 +489,56 @@ class PaperContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PaginationTests(unittest.TestCase):
+    """页码自摘要页起连续——规则第 42/44 条，此前全靠人眼翻页。
+
+    实测踩过的坑：模板在摘要后写 \\setcounter{page}{1}，摘要标 1–2、正文又从 1
+    重新计，全文两套页码，而所有 Gate 都判全绿。
+    """
+
+    @staticmethod
+    def _load():
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("vpc", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def _check(self, footers):
+        module = self._load()
+        text = "\f".join(f"正文内容第 {i} 页\n{f}" for i, f in enumerate(footers, 1))
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "paper.pdf"
+            fake.write_bytes(b"%PDF-1.4\n")
+            errors, warnings = [], []
+            return module.validate_pagination(fake, text, errors, warnings), errors, warnings
+
+    def test_continuous_pagination_passes(self) -> None:
+        report, errors, _ = self._check([1, 2, 3, 4, 5])
+        self.assertEqual(report["mismatched"], [])
+        self.assertEqual(errors, [])
+
+    def test_counter_reset_after_abstract_is_caught(self) -> None:
+        """摘要 1–2 后正文从 1 重新计，正是实测踩到的形态。"""
+        report, errors, _ = self._check([1, 2, 1, 2, 3])
+        self.assertIn("PAGINATION_DISCONTINUOUS", {item["code"] for item in errors})
+        self.assertEqual(
+            [entry["pdf_page"] for entry in report["mismatched"]], [3, 4, 5]
+        )
+
+    def test_section_numbers_are_not_mistaken_for_footers(self) -> None:
+        """判据只认「整页最后一行且整行纯数字」；正文里的孤立数字不得被当页码。"""
+        module = self._load()
+        text = "1 问题重述\n正文若干\n表 3 结果对照\f2 模型建立\n正文若干\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "paper.pdf"
+            fake.write_bytes(b"%PDF-1.4\n")
+            errors, warnings = [], []
+            report = module.validate_pagination(fake, text, errors, warnings)
+        self.assertEqual(report["status"], "SKIPPED")
+        self.assertIn("PAGINATION_NOT_DETECTED", {item["code"] for item in warnings})
+        self.assertEqual(errors, [])
+
