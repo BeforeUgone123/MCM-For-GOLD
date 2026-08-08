@@ -123,3 +123,63 @@ class RunAllConcurrencyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProblemEntrypointTests(unittest.TestCase):
+    """--all 不得把「只跑了一部分」伪装成「全跑完」。
+
+    实测事故：某次支撑包 src/ 下只有 p1.py，而 README 与论文附录都写着
+    src/p1.py…src/p5.py。评委执行 --all，9.6 秒后看到 [DONE]，会认为五问
+    全部复现，实际只跑了 1/5。缺少必要源程序与运行结果和论文不符都是
+    格式规范第五条的取消资格红线，必须显性失败。
+    """
+
+    @staticmethod
+    def _load():
+        spec = importlib.util.spec_from_file_location("run_all", RUN_ALL)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def _with_entries(self, names, fn):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            src.mkdir()
+            for name in names:
+                (src / name).write_text("def main(seed, log_result):\n    pass\n", encoding="utf-8")
+            cwd = os.getcwd()
+            os.chdir(tmp)
+            try:
+                return fn()
+            finally:
+                os.chdir(cwd)
+
+    def test_gap_in_entrypoints_fails(self) -> None:
+        module = self._load()
+        with self.assertRaises(SystemExit) as caught:
+            self._with_entries(
+                ["p1.py", "p2.py", "p5.py"],
+                lambda: module._problem_numbers(True, None),
+            )
+        self.assertIn("p3.py", str(caught.exception))
+        self.assertIn("p4.py", str(caught.exception))
+
+    def test_expect_problems_catches_wholesale_shortfall(self) -> None:
+        """入口只有 p1.py 时编号是「连续」的，只有 --expect-problems 能抓到。"""
+        module = self._load()
+        with self.assertRaises(SystemExit) as caught:
+            self._with_entries(
+                ["p1.py"],
+                lambda: module._problem_numbers(True, None, 5),
+            )
+        self.assertIn("5", str(caught.exception))
+
+    def test_complete_entrypoints_pass(self) -> None:
+        module = self._load()
+        numbers = self._with_entries(
+            ["p1.py", "p2.py", "p3.py", "p4.py", "p5.py"],
+            lambda: module._problem_numbers(True, None, 5),
+        )
+        self.assertEqual(numbers, [1, 2, 3, 4, 5])

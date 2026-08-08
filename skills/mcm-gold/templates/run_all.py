@@ -175,7 +175,9 @@ def confirm_result(rid: str, evidence: str, status: str) -> None:
     print(f"[VERIFIED] {rid} -> {status}: {evidence}")
 
 
-def _problem_numbers(all_problems: bool, problem: int | None) -> list[int]:
+def _problem_numbers(
+    all_problems: bool, problem: int | None, expect: int | None = None
+) -> list[int]:
     if problem is not None:
         if not pathlib.Path(f"src/p{problem}.py").is_file():
             raise SystemExit(f"未找到 src/p{problem}.py（当前工作目录 {pathlib.Path.cwd()}）")
@@ -192,7 +194,26 @@ def _problem_numbers(all_problems: bool, problem: int | None) -> list[int]:
             f"当前工作目录：{pathlib.Path.cwd()}\n"
             f"本脚本按相对路径查找 src/，请先 cd 到支撑包根目录（run_all.py 所在目录）再执行。"
         )
-    return sorted(found)
+    found = sorted(found)
+    if all_problems and found:
+        # 「找到几个就跑几个」会让缺入口静默通过：实测某次支撑包只有 src/p1.py，
+        # 而 README 与论文附录都写着 src/p1.py…src/p5.py，评委执行 --all 看到
+        # 9.6 秒后打出 [DONE]，会认为五问全部复现，实际只跑了 1/5。
+        # 缺少必要源程序、运行结果与论文不符都是取消资格红线，这里必须显性失败。
+        missing = [n for n in range(1, max(found) + 1) if n not in found]
+        if missing:
+            raise SystemExit(
+                f"src/ 下问题入口不连续，缺 {['p%d.py' % n for n in missing]}；"
+                f"实际找到 {['p%d.py' % n for n in found]}。"
+                "复现入口缺项等同于缺少必要源程序，不得静默跑一部分。"
+            )
+        if expect is not None and len(found) != expect:
+            raise SystemExit(
+                f"--expect-problems {expect} 与实际入口数 {len(found)} 不符"
+                f"（找到 {['p%d.py' % n for n in found]}）。"
+                "论文有几问，复现入口就必须有几个。"
+            )
+    return found
 
 
 def main() -> None:
@@ -209,6 +230,12 @@ def main() -> None:
     )
     parser.add_argument("--seed", type=int, default=20260910)
     parser.add_argument("--state-dir", default=os.environ.get("MCM_STATE_DIR", "workspace"))
+    parser.add_argument(
+        "--expect-problems",
+        type=int,
+        help="断言 --all 恰好运行这么多问；T8 终检必传，值取自论文实际问数。"
+        "不传时只校验入口编号连续，防不住「整体少一问」",
+    )
     args = parser.parse_args()
 
     global STATE_DIR
@@ -221,12 +248,18 @@ def main() -> None:
 
     set_seed(args.seed)
     started = time.time()
-    for number in _problem_numbers(args.all, args.problem):
+    numbers = _problem_numbers(args.all, args.problem, args.expect_problems)
+    if args.all:
+        print(f"[PLAN] 本次将运行 {len(numbers)} 问：{['p%d.py' % n for n in numbers]}")
+    for number in numbers:
         module = importlib.import_module(f"src.p{number}")
         if not hasattr(module, "main"):
             raise SystemExit(f"src/p{number}.py 缺少 main(seed, log_result)")
         module.main(args.seed, log_result)
-    print(f"[DONE] 用时 {time.time() - started:.1f}s，种子 {args.seed}，状态目录 {STATE_DIR}")
+    print(
+        f"[DONE] 运行 {len(numbers)} 问 {['p%d.py' % n for n in numbers]}，"
+        f"用时 {time.time() - started:.1f}s，种子 {args.seed}，状态目录 {STATE_DIR}"
+    )
 
 
 if __name__ == "__main__":
