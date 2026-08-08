@@ -16,28 +16,31 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 ## 执行
 
 1. 冻结候选文件，生成实际目录清单和 SHA-256；不手写猜测包内文件。提交白名单只能指向显式 `*_submission.pdf`，禁止把 `main.pdf` 重命名后当提交版。
-2. 对冻结后的阅读版、提交版、覆盖账本、七维 rubric 和实际支撑/源程序目录重新运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存到 `MCM-Result/Review-Results/T8_PAPER_CONTRACT.json`。缺提交版、共享正文漂移、文件列表不实、代码未嵌入、覆盖缺项或 rubric 未达目标均阻断打包；T8 不得覆盖 T7 状态。
-3. 按规则执行机器检查并保存原始输出：页数、文件大小、页码、纸张、字体嵌入、损坏、正文匿名词、PDF 属性、Office 属性、代码路径用户名、图片 EXIF、压缩包层级和非法文件。
-4. 逐项核对正文数字、图表、`RESULTS.md`、引用、目录、页码和支撑文件名。检查当前可交版本而非旧副本。
-5. 把支撑包复制到新目录，解压后建立全新环境，严格按 README/复现说明运行 `run_all`；从实际输出核对关键数值、图和官方结果模板。**这一步对应格式规范第五条的取消资格红线**（缺源程序、程序不能运行、运行结果与论文不符），不是内部质量偏好：跑不通或对不上就是资格风险，必须修到通过或如实降级论文结论，不得跳过。
-6. **逐条核验三条取消资格红线并留证**：① 附录代码 = 支撑包代码 = 清环境实跑通过（留完整日志）；② 清环境重跑的关键数值逐项等于论文/图表/`RESULTS.md`（留比对表，差异必须追根因，禁止改论文数字凑答案）；③ 支撑包与提交论文同版本冻结、哈希一致，未混入旧副本（格式规范第十一条：支撑材料与论文内容不相符可能被取消评奖资格）。
-7. **核验本赛区附加要求**：读取 T0 登记的赛区要求逐条比对；T0 未登记时在此阻断并要求补查，不得默认只有全国级规则（格式规范第八条允许赛区另提要求）。
-8. 检查代码没有依赖未打包的绝对路径、缓存、隐藏文件或私有数据；必要时只做可解释的低风险修复并重新全检。
-9. 在参考文献之前生成或核验 2026 版“AI 工具使用声明”。已使用 AI 时，支撑材料必须含文件名完全一致的 `AI 工具使用详情.pdf`，并从 `AI_USAGE.md` 回读名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验；同时核对核心建模与分析的队员主导证据。未使用声明必须与过程档案一致。
-10. 核验 `MCM-Result/Reference-Papers/SEARCH_LOG.md` 无禁入域名采用记录；误命中已登记并弃用（参赛规则第 5 条把"浏览"本身列为严重违纪）。
-11. 准备 H-005 简报：最终文件名和哈希、论文契约、机器检查、清环境复现、三条红线留证、赛区要求、AI 披露、剩余风险、提交与覆盖计划。
-12. AI 不点击最终授权、不替人承担提交责任。由人确认 H-005 后执行平台操作并回读回执、下载文件、打开验证和哈希。
-13. 截止前 2 小时完成首次保底提交；平台允许覆盖时最迟截止前 1 小时停止覆盖，每次覆盖后重新核验回执和下载文件。
-14. 审计内置 Nature 闭环：`NATURE_QA.csv` 无未解释 DRAFT/BLOCKED，`SOURCE_DATA_MAP.csv` 的正文图/关键表均有真实路径和哈希，`MCM_SOURCE_MODEL.yaml` 与最终摘要/主图/限制一致。
-15. 打开最终 SVG/PDF/PNG，检查最终尺寸、字体、重叠、裁剪、统计说明和 source data；不是只检查 T7 中间版本。
-16. `paper_format=word` 或存在 PPTX 时，直接运行并读取 `officecli validate/view issues/view text`，同时做渲染预览；结构通过不等于视觉通过。
-17. 检查引用无 metadata-only 支撑、期刊式数据声明没有虚构 DOI/仓储/许可、非必交 Nature 风格材料未混入提交白名单。
+2. **先建交付物分层再终检**：运行 [`../mcm-gold/templates/build_deliverables.py`](../mcm-gold/templates/build_deliverables.py) 生成 `deliverables/{submission,staging/support,print,archive}`，保存清单到 `MCM-Result/Review-Results/T8_DELIVERABLES.json`。**不得跳过这一步直接终检**——契约的 `--support-root`/`--source-root` 指向 staging 路径，路径不存在时逐文件列表核对与源码嵌入核对**整组静默跳过**，报告只剩一条 `MISSING_SUPPORT_ROOT`，极易被读成「支撑包已通过终检」。2025A 演练正是如此漏掉了一个论文完全没提到的源文件和四份未嵌入附录的代码。
+
+3. 对冻结后的阅读版、提交版、覆盖账本、七维 rubric 和实际支撑/源程序目录重新运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存到 `MCM-Result/Review-Results/T8_PAPER_CONTRACT.json`。缺提交版、共享正文漂移、文件列表不实、代码未嵌入、覆盖缺项或 rubric 未达目标均阻断打包；T8 不得覆盖 T7 状态。
+4. 按规则执行机器检查并保存原始输出：页数、文件大小、页码、纸张、字体嵌入、损坏、正文匿名词、PDF 属性、Office 属性、代码路径用户名、图片 EXIF、压缩包层级和非法文件。
+5. 逐项核对正文数字、图表、`RESULTS.md`、引用、目录、页码和支撑文件名。检查当前可交版本而非旧副本。
+6. 把支撑包复制到新目录，解压后建立全新环境，严格按 README/复现说明运行 `run_all`；从实际输出核对关键数值、图和官方结果模板。**这一步对应格式规范第五条的取消资格红线**（缺源程序、程序不能运行、运行结果与论文不符），不是内部质量偏好：跑不通或对不上就是资格风险，必须修到通过或如实降级论文结论，不得跳过。
+7. **逐条核验三条取消资格红线并留证**：① 附录代码 = 支撑包代码 = 清环境实跑通过（留完整日志）；② 清环境重跑的关键数值逐项等于论文/图表/`RESULTS.md`（留比对表，差异必须追根因，禁止改论文数字凑答案）；③ 支撑包与提交论文同版本冻结、哈希一致，未混入旧副本（格式规范第十一条：支撑材料与论文内容不相符可能被取消评奖资格）。
+8. **核验本赛区附加要求**：读取 T0 登记的赛区要求逐条比对；T0 未登记时在此阻断并要求补查，不得默认只有全国级规则（格式规范第八条允许赛区另提要求）。
+9. 检查代码没有依赖未打包的绝对路径、缓存、隐藏文件或私有数据；必要时只做可解释的低风险修复并重新全检。
+10. 在参考文献之前生成或核验 2026 版“AI 工具使用声明”。已使用 AI 时，支撑材料必须含文件名完全一致的 `AI 工具使用详情.pdf`，并从 `AI_USAGE.md` 回读名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验；同时核对核心建模与分析的队员主导证据。未使用声明必须与过程档案一致。
+11. 核验 `MCM-Result/Reference-Papers/SEARCH_LOG.md` 无禁入域名采用记录；误命中已登记并弃用（参赛规则第 5 条把"浏览"本身列为严重违纪）。
+12. 准备 H-005 简报：最终文件名和哈希、论文契约、机器检查、清环境复现、三条红线留证、赛区要求、AI 披露、剩余风险、提交与覆盖计划。
+13. AI 不点击最终授权、不替人承担提交责任。由人确认 H-005 后执行平台操作并回读回执、下载文件、打开验证和哈希。
+14. 截止前 2 小时完成首次保底提交；平台允许覆盖时最迟截止前 1 小时停止覆盖，每次覆盖后重新核验回执和下载文件。
+15. 审计内置 Nature 闭环：`NATURE_QA.csv` 无未解释 DRAFT/BLOCKED，`SOURCE_DATA_MAP.csv` 的正文图/关键表均有真实路径和哈希，`MCM_SOURCE_MODEL.yaml` 与最终摘要/主图/限制一致。
+16. 打开最终 SVG/PDF/PNG，检查最终尺寸、字体、重叠、裁剪、统计说明和 source data；不是只检查 T7 中间版本。
+17. `paper_format=word` 或存在 PPTX 时，直接运行并读取 `officecli validate/view issues/view text`，同时做渲染预览；结构通过不等于视觉通过。
+18. 检查引用无 metadata-only 支撑、期刊式数据声明没有虚构 DOI/仓储/许可、非必交 Nature 风格材料未混入提交白名单。
 
 ## 产物
 
 - `MCM-Result/Review-Results/T8_FINAL_CHECK.md`、`REVIEW_PASS_ITEMS.csv`；所有检查原始日志放 `Intermediate-Outputs/logs/`。
 - `MCM-Result/Review-Results/T8_PAPER_CONTRACT.json`，其输入路径和哈希必须指向冻结后的最终文件。
-- `MCM-Result/Paper-Outputs/deliverables/` 实际白名单、`MANIFEST.sha256` 和最终压缩包。
+- `MCM-Result/Paper-Outputs/deliverables/` 按 `submission/staging/print/archive` 四层分好，含实际白名单、`MANIFEST.sha256` 和最终压缩包。
+- `MCM-Result/Review-Results/T8_DELIVERABLES.json`：`build_deliverables.py` 的清单与大小校验输出。
 - `MCM-Result/Intermediate-Outputs/reproduction/clean-<id>/`：解压、安装、运行和核对日志。
 - AI 披露文件、提交回执和下载复核记录放 `Paper-Outputs/`；`T8_H005_BRIEF.md` 放 `Review-Results/`。
 - `MCM-Result/Review-Results/NATURE_QA.csv` 终态、最终图表/Office 回读结果与 SourceModel 一致性记录；原始回读日志放 `Intermediate-Outputs/logs/`。

@@ -324,6 +324,38 @@ class PaperContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("SCIENTIFIC_BODY_DRIFT", {item["code"] for item in report["errors"]})
 
+    def test_directory_declaration_covers_files_beneath_it(self) -> None:
+        """附录写一行 `figures/` 即覆盖其下文件，不必逐个列出。
+
+        逐文件比对会逼人把几十个文件名（含每张图的同名 .csv）塞进正文，
+        既不合国赛论文惯例又挤占篇幅；实测 2025A 演练因此一次报出 25 条
+        SUPPORT_FILE_NOT_LISTED，其中 24 条是这个口径问题，1 条才是真缺陷。
+        """
+        nested = self.source / "figures"
+        nested.mkdir(exist_ok=True)
+        (nested / "F-001-panel.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+        (nested / "F-001-panel.pdf").write_text("%PDF-1.4\n", encoding="utf-8")
+        body = self.reader.read_text(encoding="utf-8")
+        self.submission.write_text(
+            body + APPENDIX + "\nfigures/    正文图及其图源表\n", encoding="utf-8"
+        )
+        _, report = self.run_contract()
+        unlisted = [
+            item["message"] for item in report["errors"]
+            if item["code"] == "SUPPORT_FILE_NOT_LISTED"
+        ]
+        self.assertEqual(unlisted, [], f"目录级声明应覆盖其下文件，实际报出：{unlisted}")
+
+    def test_top_level_file_still_needs_naming(self) -> None:
+        """顶层散落文件没有可声明的父目录，仍须具名——否则目录级放宽会变成全放行。"""
+        (self.source / "orphan_helper.py").write_text("print(1)\n", encoding="utf-8")
+        _, report = self.run_contract()
+        messages = " ".join(
+            item["message"] for item in report["errors"]
+            if item["code"] == "SUPPORT_FILE_NOT_LISTED"
+        )
+        self.assertIn("orphan_helper.py", messages)
+
     def test_fabricated_references_are_rejected_without_any_flag(self) -> None:
         """反编造校验必须**默认**生效。
 

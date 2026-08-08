@@ -695,15 +695,42 @@ def validate_editions(
     normalized_submission = normalize(submission_text)
     if support_root is not None:
         if not support_root.is_dir():
-            add_issue(errors, "MISSING_SUPPORT_ROOT", f"支撑目录不存在：{support_root}")
+            # 路径落空 ≠ 只少一项检查：其下的逐文件列表核对整组不会执行。
+            # 实测后果——2025A 演练因交付物未分层而传了不存在的 staging 路径，
+            # 报告只显示这一条 error，被读成「支撑包已通过终检」，而实际有一个
+            # 论文完全没提到的文件从未被发现。
+            add_issue(
+                errors,
+                "MISSING_SUPPORT_ROOT",
+                f"支撑目录不存在：{support_root}。**其下逐文件列表核对整组未执行**——"
+                "本次报告不构成支撑材料完整性的任何证据，先修路径再重跑",
+            )
         else:
             for path in visible_files(support_root):
                 relative = path.relative_to(support_root).as_posix()
-                if normalize(relative) not in normalized_submission:
-                    add_issue(errors, "SUPPORT_FILE_NOT_LISTED", f"提交版文件列表未找到：{relative}")
+                # 目录级声明覆盖其下文件：附录里写一行 `figures/` 即代表整个目录，
+                # 无须把每张图的同名 .csv 逐个列进论文。逐文件比对会逼人把几十个
+                # 文件名塞进正文（既不合国赛论文惯例，又挤占篇幅），或者永远 FAIL——
+                # 那不是让人写清楚，是让人二选一地作弊。
+                # 顶层散落文件仍须具名：它们没有可声明的父目录。
+                ancestors = [
+                    f"{parent.as_posix()}/"
+                    for parent in Path(relative).parents
+                    if parent.as_posix() not in (".", "")
+                ]
+                if normalize(relative) in normalized_submission:
+                    continue
+                if any(normalize(ancestor) in normalized_submission for ancestor in ancestors):
+                    continue
+                add_issue(errors, "SUPPORT_FILE_NOT_LISTED", f"提交版文件列表未找到：{relative}")
     if source_root is not None:
         if not source_root.is_dir():
-            add_issue(errors, "MISSING_SOURCE_ROOT", f"源程序目录不存在：{source_root}")
+            add_issue(
+                errors,
+                "MISSING_SOURCE_ROOT",
+                f"源程序目录不存在：{source_root}。**源码具名与代码嵌入核对整组未执行**——"
+                "规则要求提交版附录含完整源程序，这一项当前无任何证据",
+            )
         else:
             code_files = [path for path in visible_files(source_root) if path.suffix.lower() in CODE_SUFFIXES]
             if not code_files:
