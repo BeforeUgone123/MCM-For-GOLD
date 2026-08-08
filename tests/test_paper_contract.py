@@ -356,6 +356,33 @@ class PaperContractTests(unittest.TestCase):
         )
         self.assertIn("orphan_helper.py", messages)
 
+    def test_ledger_value_absent_from_paper_is_flagged(self) -> None:
+        """终检清单要求「正文数字 = RESULTS.md」，此前全靠人工比对。
+
+        台账登记了结果、论文里却一个对应数值都找不到，说明两者已脱节。
+        只取 >=4 位小数的高精度数值作判据：整数和一两位小数在任何论文里都
+        可能偶然出现，拿它们比对会产出大量假通过，比不查更糟。
+        """
+        ledger = self.root / "RESULTS.md"
+        ledger.write_text(
+            "# RESULTS\n\n"
+            "| ID | 内容 | 值/单位 | 输入 | 命令 | 种子 | 计算 | 核验 | 图 | verify | 状态 |\n"
+            "|---|---|---|---|---|---|---|---|---|---|---|\n"
+            "| R-901 | 论文里有的量 | 1.391646 s | | | | | | | | CONFIRMED |\n"
+            "| R-902 | 论文里没有的量 | 98765.432109 s | | | | | | | | CONFIRMED |\n"
+            "| R-903 | 已作废 | 55555.111111 s | | | | | | | | STALE |\n",
+            encoding="utf-8",
+        )
+        body = self.reader.read_text(encoding="utf-8")
+        self.reader.write_text(body + "\n实测值 1.391646 s。\n", encoding="utf-8")
+        self.submission.write_text(
+            self.reader.read_text(encoding="utf-8") + APPENDIX, encoding="utf-8"
+        )
+        _, report = self.run_contract("--results-ledger", str(ledger))
+        absent = {item["id"] for item in report["results_check"]["absent"]}
+        self.assertEqual(absent, {"R-902"}, "只有论文里查无此数的活动记录该被报出")
+        self.assertIn("RESULTS_NOT_IN_PAPER", {item["code"] for item in report["errors"]})
+
     def test_fabricated_references_are_rejected_without_any_flag(self) -> None:
         """反编造校验必须**默认**生效。
 

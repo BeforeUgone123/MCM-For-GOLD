@@ -277,6 +277,63 @@ def load_library_index(path: Path) -> tuple[set[str], set[str], str | None]:
     return identifiers, titles, None
 
 
+def validate_results_ledger(
+    ledger_path: Path | None,
+    reader_text: str,
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> dict[str, object] | None:
+    """核验 RESULTS.md 里每条 R-id 的数值确实进了论文。
+
+    终检清单要求「摘要数字 = 正文数字 = 图表数字 = RESULTS.md」，此前全靠人工比对。
+    这里做可证伪的那一半：台账登记了某个结果，论文里却一个对应数值都找不到，
+    说明台账与论文已经脱节——要么论文漏报了这个结果，要么台账里是废弃记录没标状态。
+
+    只取 ≥4 位小数的高精度数值作判据：整数和一两位小数在任何论文里都可能偶然出现，
+    拿它们比对会产出大量假通过，比不查更糟。
+    """
+    if ledger_path is None:
+        return None
+    if not ledger_path.is_file():
+        add_issue(warnings, "RESULTS_LEDGER_MISSING", f"结果台账不存在：{ledger_path}")
+        return {"status": "SKIPPED", "checked": None, "absent": None}
+
+    normalized_reader = normalize(reader_text).replace(".", "")
+    rows = [
+        line for line in ledger_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("| R-")
+    ]
+    checked, absent, skipped = 0, [], 0
+    for line in rows:
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 11:
+            continue
+        rid, name, value, status = cells[0], cells[1], cells[2], cells[10]
+        # 已被取代或作废的记录本就不该出现在论文里。
+        if status.upper() in {"STALE", "SUPERSEDED"}:
+            skipped += 1
+            continue
+        numbers = re.findall(r"\d+\.\d{4,}", value)
+        if not numbers:
+            skipped += 1
+            continue
+        checked += 1
+        if all(number.replace(".", "") not in normalized_reader for number in numbers):
+            absent.append({"id": rid, "name": name[:40], "values": numbers[:3]})
+    if absent:
+        add_issue(
+            errors,
+            "RESULTS_NOT_IN_PAPER",
+            "以下 R-id 的数值在论文中完全找不到，台账与论文已脱节："
+            + "; ".join(f"{item['id']} {item['name']} {item['values']}" for item in absent)
+            + "。要么论文漏报该结果，要么台账里是废弃记录未标 STALE/SUPERSEDED",
+        )
+    return {
+        "status": "CHECKED", "ledger_rows": len(rows), "checked": checked,
+        "skipped": skipped, "absent": absent,
+    }
+
+
 def validate_references(
     entries: list[str],
     library_path: Path | None,
@@ -1013,6 +1070,11 @@ def parse_args() -> argparse.Namespace:
         "此前它是可选参数且四处文档化命令都不传，等于默认关闭",
     )
     parser.add_argument(
+        "--results-ledger",
+        type=Path,
+        help="RESULTS.md 路径；核验每条 R-id 的数值确实进了论文（终检清单「正文数字 = RESULTS.md」的机检版）",
+    )
+    parser.add_argument(
         "--citation-log",
         type=Path,
         help="SOURCES.md 等实访记录；库外条目凭它证明 DOI 被实际访问过",
@@ -1083,6 +1145,7 @@ def main() -> int:
         )
     reference_check: dict[str, object] | None = None
     target_check: dict[str, object] | None = None
+    results_check: dict[str, object] | None = None
     if not reader_error:
         norm_text, positions = build_normalized_index(reader_text)
         reference_check = validate_references(
@@ -1092,6 +1155,9 @@ def main() -> int:
             errors,
             warnings,
             library_explicit=args.literature_library != DEFAULT_LITERATURE_LIBRARY,
+        )
+        results_check = validate_results_ledger(
+            args.results_ledger, reader_text, errors, warnings
         )
         if args.target_check and depth_metrics is not None:
             target_check = assess_targets(
@@ -1138,6 +1204,7 @@ def main() -> int:
         "human_state": human_state,
         "depth_metrics": depth_metrics,
         "reference_check": reference_check,
+        "results_check": results_check,
         "target_check": target_check,
         "errors": errors,
         "expansion_items": expansions,

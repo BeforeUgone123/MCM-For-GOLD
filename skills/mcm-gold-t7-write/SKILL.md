@@ -35,7 +35,7 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 17. 在参考文献之前设置 2026 版“AI 工具使用声明”，从实际 `AI_USAGE.md` 二选一回填原文。使用 AI 时生成 `AI 工具使用详情.pdf` 并逐项回读工具名称/版本或型号、用途环节、提示与过程、采纳/人工修改/核验及核心建模与分析的队员主导证据；不把 AI 工具列入参考文献，不沿用 2025 版正文逐处标注旧模板。
 18. LaTeX 路线只维护一个 `MCM-Result/Paper-Outputs/paper/body.tex` 科学正文源；`main.tex` 只引入正文，`*_submission.tex` 引入同一正文后追加由最终支撑目录实际遍历生成的文件列表与全部 `\lstinputlisting` 源程序。Word 路线也必须从同一 DocumentSpec 生成两版并做正文回读比对。
 19. 逐行填写固定七维 `T7_RUBRIC_REVIEW.csv`。总分低于 `CONFIG.target.rubric_threshold` 或任一单项低于及格线时，修复实质缺口并让论文契约返回 `NEEDS_EXPANSION`；T7 阶段不得 `PASS/PASS_WITH_LIMITATIONS`，不能以自创评分表绕过。
-20. 对最终阅读版、提交版、覆盖账本、rubric 和实际支撑/源程序目录运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存到 `MCM-Result/Review-Results/T7_PAPER_CONTRACT.json`。契约错误必须修复；`NEEDS_EXPANSION` 必须按 expansion_items 逐条实质扩写（补齐每问正文、编号公式、结果表或摘要、模型评价密度）并重跑契约直至通过，不得只调阈值或用文字掩饰缺口；阅读版触线（<14 页或 <10000 字）时以形态检查为准，形态项缺失即 `NEEDS_EXPANSION`，全过则契约记录 `DEPTH_FORM_CHECKS_PASSED` 豁免留痕，不按页数填充。
+20. 对最终阅读版、提交版、覆盖账本、rubric 和实际支撑/源程序目录运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存到 `MCM-Result/Review-Results/T7_PAPER_CONTRACT.json`。**带 `--results-ledger MCM-Result/Intermediate-Outputs/RESULTS.md`**，核验每条 R-id 的数值确实进了论文——终检清单的「正文数字 = RESULTS.md」此前全靠人工比对，台账登记了结果而论文里查无此数，说明两者已脱节。契约错误必须修复；`NEEDS_EXPANSION` 必须按 expansion_items 逐条实质扩写（补齐每问正文、编号公式、结果表或摘要、模型评价密度）并重跑契约直至通过，不得只调阈值或用文字掩饰缺口；阅读版触线（<14 页或 <10000 字）时以形态检查为准，形态项缺失即 `NEEDS_EXPANSION`，全过则契约记录 `DEPTH_FORM_CHECKS_PASSED` 豁免留痕，不按页数填充。
 21. H-004 必须阅读实际 `main.pdf`，逐问确认解释、结果、主图、验证和边界；契约已记录 `DEPTH_FORM_CHECKS_PASSED` 豁免时 H-004 仍须人工复核表达层，不得以机检豁免替代人工阅读。演练只能把覆盖行写成 `PROXY_REHEARSAL`，最终状态不得冒充正式 `PASS`。
 
 ## 产物
