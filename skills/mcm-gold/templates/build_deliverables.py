@@ -76,6 +76,10 @@ def main() -> int:
                         help="支撑材料源目录：README、requirements、run_all.py、src/、data/、figures/、intermediate/ 等")
     parser.add_argument("--print-pdf", type=Path, default=None,
                         help="纸质版（含承诺书与编号页）；缺省时 print/ 留空并记 warning")
+    parser.add_argument("--code-src", type=Path, default=None,
+                        help="代码权威源目录（如 Data-Scripts/）。给出时逐文件比对 staging 里的同名"
+                             "代码，不一致即 error——支撑包与工作区各存一份代码、靠手工同步，"
+                             "正是格式规范第十一条「支撑材料与论文不相符」的温床")
     parser.add_argument("--extra", type=Path, nargs="*", default=[],
                         help="额外随支撑包提交的文件，如 result1.xlsx")
     parser.add_argument("--archive-src", type=Path, nargs="*", default=[],
@@ -118,6 +122,34 @@ def main() -> int:
             continue
         shutil.copy2(extra, staging / extra.name)
         copied += 1
+
+    # --- 代码同源核验 ---
+    code_check: dict[str, object] | None = None
+    if args.code_src is not None:
+        if not args.code_src.is_dir():
+            errors.append(f"CODE_SRC_MISSING 代码源目录不存在：{args.code_src}")
+        else:
+            drifted, checked = [], 0
+            for staged in staging.rglob("*"):
+                if not staged.is_file() or staged.suffix.lower() not in {".py", ".r", ".m"}:
+                    continue
+                origin = args.code_src / staged.relative_to(staging)
+                if not origin.is_file():
+                    warnings.append(
+                        f"CODE_NOT_IN_SOURCE 支撑包有而代码源没有：{staged.relative_to(staging)}"
+                    )
+                    continue
+                checked += 1
+                if sha256_of(origin) != sha256_of(staged):
+                    drifted.append(staged.relative_to(staging).as_posix())
+            if drifted:
+                errors.append(
+                    "CODE_DRIFT 支撑包中的代码与代码源不一致："
+                    + ", ".join(drifted)
+                    + "。论文附录嵌入的是代码源，支撑包发出去的是另一份，评委对不上即"
+                    "触发格式规范第十一条"
+                )
+            code_check = {"checked": checked, "drifted": drifted}
 
     # --- submission/：论文 + 支撑包 ---
     paper_target = submission / "paper.pdf"
@@ -178,6 +210,7 @@ def main() -> int:
                 "entries": len(files),
             },
         },
+        "code_check": code_check,
         "staging_files": copied,
         "archive_files": archived,
         "print_ready": (print_dir / "paper_print.pdf").is_file(),
