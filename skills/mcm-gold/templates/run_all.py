@@ -240,6 +240,15 @@ def main() -> None:
 
     global STATE_DIR
     STATE_DIR = pathlib.Path(args.state_dir).expanduser().resolve()
+
+    # 字节码缓存改道。Python 默认把 __pycache__ 写在源码旁，每跑一次就往 Data-Scripts/
+    # 塞一个缓存目录，布局校验随即报 CACHE_IN_SOURCE_TREE。环境变量 PYTHONPYCACHEPREFIX
+    # 必须在解释器启动前设好，靠人每次记得 export 不可靠（实测同一会话忘了两次）；
+    # sys.pycache_prefix 进程内赋值即生效，且对之后所有 import 有效——
+    # 必须放在这里而不是模块顶部：STATE_DIR 到上面这行才被 --state-dir 覆盖，
+    # 写在顶部会按默认值 workspace/ 建缓存，凭空多出一个目录（本轮踩过）。
+    if sys.pycache_prefix is None:
+        sys.pycache_prefix = str(STATE_DIR / "pycache")
     if args.confirm:
         if not args.evidence:
             parser.error("--confirm 必须同时提供 --evidence")

@@ -7,6 +7,7 @@ import argparse
 from collections import Counter
 import csv
 from difflib import SequenceMatcher
+import fnmatch
 import json
 import re
 import subprocess
@@ -786,6 +787,7 @@ def validate_editions(
     reader_text: str,
     submission_text: str,
     source_root: Path | None,
+    source_exclude: list[str] | None,
     support_root: Path | None,
     appendix_required: bool,
     errors: list[dict[str, str]],
@@ -883,6 +885,29 @@ def validate_editions(
             )
         else:
             code_files = [path for path in visible_files(source_root) if path.suffix.lower() in CODE_SUFFIXES]
+            # 权威源码目录里通常混着不进附录的工具脚本（排版、绘图、下载）。
+            # 规范只要求附录含「建模用到的」源程序，把这些排掉不是放松检查——
+            # 相反，正因为能排掉它们，--source-root 才敢指向权威源码目录而不是支撑包副本，
+            # 而只有指向权威源码，APPENDIX_CODE_STALE 才检得出「改了代码没重编论文」。
+            excluded: list[str] = []
+            if source_exclude:
+                kept = []
+                for path in code_files:
+                    relative = path.relative_to(source_root).as_posix()
+                    if any(fnmatch.fnmatch(relative, pattern) or
+                           fnmatch.fnmatch(path.name, pattern) for pattern in source_exclude):
+                        excluded.append(relative)
+                    else:
+                        kept.append(path)
+                code_files = kept
+                if excluded:
+                    add_issue(
+                        warnings, "SOURCE_FILES_EXCLUDED",
+                        "按 --source-exclude 跳过、未做附录核对的源文件："
+                        + "、".join(sorted(excluded))
+                        + "。它们因此不受「附录须含完整可运行源程序」这一项保护，"
+                          "排除理由须能说明它们确实不属于建模程序。",
+                    )
             if not code_files:
                 add_issue(errors, "NO_SOURCE_FILES", f"源程序目录没有可识别代码：{source_root}")
             for path in code_files:
@@ -1195,6 +1220,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reader", type=Path, required=True)
     parser.add_argument("--submission", type=Path, required=True)
     parser.add_argument("--source-root", type=Path)
+    parser.add_argument("--source-exclude", action="append", default=[],
+                        help="不参与附录核对的源文件（glob，可多次）；用于排除排版、绘图这类非建模脚本")
     parser.add_argument("--support-root", type=Path)
     parser.add_argument("--target-score", type=float, default=88)
     parser.add_argument("--advisory-min-pages", type=int, default=18, help="已废弃：深度触线改由 --depth-trigger-pages/--depth-trigger-chars 控制")
@@ -1270,6 +1297,7 @@ def main() -> int:
             reader_text,
             submission_text,
             args.source_root,
+            args.source_exclude,
             args.support_root,
             args.appendix_required,
             errors,
