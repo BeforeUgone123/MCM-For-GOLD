@@ -76,6 +76,8 @@ def main() -> int:
                         help="支撑材料源目录：README、requirements、run_all.py、src/、data/、figures/、intermediate/ 等")
     parser.add_argument("--print-pdf", type=Path, default=None,
                         help="纸质版（含承诺书与编号页）；缺省时 print/ 留空并记 warning")
+    parser.add_argument("--artifact-src", type=Path, action="append", default=[],
+                        help="权威结果产物目录（可多次），如 Paper-Outputs/results；按文件名比对支撑包中的同名文件")
     parser.add_argument("--code-src", type=Path, default=None,
                         help="代码权威源目录（如 Data-Scripts/）。给出时逐文件比对 staging 里的同名"
                              "代码，不一致即 error——支撑包与工作区各存一份代码、靠手工同步，"
@@ -151,6 +153,43 @@ def main() -> int:
                 )
             code_check = {"checked": checked, "drifted": drifted}
 
+    # --- 数据产物同源核验 ---
+    # code_check 只比 .py/.r/.m，且只在 --code-src 里找对应文件。但对「把结果填进官方
+    # 模板」这类题（2025D 要交 8 个 result*.xlsx），**结果文件才是核心交付物**：
+    # 模型改了、结果重新导出了，若忘记重新打包，支撑包里就是旧数据——评委拿到的数字
+    # 与论文对不上，正是格式规范第十一条。这类文件不在代码目录下，故单开一个参数。
+    artifact_check: dict[str, object] | None = None
+    if args.artifact_src:
+        drifted_art, checked_art, missing_art = [], 0, []
+        for source_dir in args.artifact_src:
+            if not source_dir.is_dir():
+                errors.append(f"ARTIFACT_SRC_MISSING 产物源目录不存在：{source_dir}")
+                continue
+            for origin in visible_files(source_dir):
+                relative = origin.relative_to(source_dir).as_posix()
+                staged_matches = [q for q in visible_files(staging)
+                                  if q.name == origin.name]
+                if not staged_matches:
+                    missing_art.append(relative)
+                    continue
+                checked_art += 1
+                if sha256_of(origin) != sha256_of(staged_matches[0]):
+                    drifted_art.append(relative)
+        if drifted_art:
+            errors.append(
+                "ARTIFACT_DRIFT 支撑包中的结果文件与权威产物不一致："
+                + ", ".join(drifted_art)
+                + "。评委按支撑包核对论文数值，两者不同即触发格式规范第十一条；"
+                  "重新导出后必须重新打包"
+            )
+        if missing_art:
+            errors.append(
+                "ARTIFACT_NOT_PACKED 权威产物未进支撑包：" + ", ".join(missing_art)
+                + "。它们是交付内容的一部分，缺失等同于支撑材料不完整"
+            )
+        artifact_check = {"checked": checked_art, "drifted": drifted_art,
+                          "not_packed": missing_art}
+
     # --- submission/：论文 + 支撑包 ---
     paper_target = submission / "paper.pdf"
     shutil.copy2(args.submission_pdf, paper_target)
@@ -211,6 +250,7 @@ def main() -> int:
             },
         },
         "code_check": code_check,
+        "artifact_check": artifact_check,
         "staging_files": copied,
         "archive_files": archived,
         "print_ready": (print_dir / "paper_print.pdf").is_file(),
