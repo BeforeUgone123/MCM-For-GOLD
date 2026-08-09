@@ -365,6 +365,34 @@ class PaperContractTests(unittest.TestCase):
         self.assertIn("ANCHOR_NOT_UNIQUE", codes)
         self.assertNotIn("ANCHOR_NOT_FOUND", codes)
 
+    def test_anchor_split_by_a_page_number_is_still_found(self) -> None:
+        """PDF 文本流里混着行号与页码，它们会插进句子中间。
+
+        实测两例：`"status")33]`（lstlisting 行号卡在 `)` 与 `]` 之间）、
+        `这不是模型失效而6是地形使然`（页码卡在句子中间）。两次都报成了假的
+        ANCHOR_NOT_FOUND。允许至多一处数字插入即可消除，且不放松真正的内容差异。
+        """
+        body = self.reader.read_text(encoding="utf-8")
+        anchor = ANCHORS["boundary"]
+        broken = anchor[:5] + "6" + anchor[5:]          # 模拟页码插入
+        self.reader.write_text(body.replace(anchor, broken), encoding="utf-8")
+        self.submission.write_text(
+            body.replace(anchor, broken) + APPENDIX, encoding="utf-8")
+        result, report = self.run_contract()
+        codes = {item["code"] for item in report["errors"]}
+        self.assertNotIn("ANCHOR_NOT_FOUND", codes)
+        self.assertEqual(result.returncode, 0, report["errors"])
+
+    def test_genuinely_absent_anchor_still_fails(self) -> None:
+        """放宽只针对数字插入；真正不在正文里的锚点仍须报错。"""
+        for row in self.coverage_rows:
+            if row["component"] == "boundary":
+                row["paper_anchor"] = "这句话在正文里根本不存在"
+        self.write_valid_files()
+        result, report = self.run_contract()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("ANCHOR_NOT_FOUND", {i["code"] for i in report["errors"]})
+
     def test_reader_submission_body_drift_fails(self) -> None:
         text = self.submission.read_text(encoding="utf-8")
         self.submission.write_text("提交版擅自改写正文\n" + text, encoding="utf-8")

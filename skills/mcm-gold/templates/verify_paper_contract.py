@@ -642,7 +642,11 @@ def validate_coverage(
             add_issue(errors, "INVALID_COVERAGE_STATUS", f"{question}/{component} 使用 status={status or '<empty>'}")
         anchor = row["paper_anchor"]
         if status != "N_A":
-            hits = reader_normalized.count(normalize(anchor)) if anchor else 0
+            normalized_anchor = normalize(anchor) if anchor else ""
+            hits = reader_normalized.count(normalized_anchor) if anchor else 0
+            if hits == 0 and normalized_anchor and \
+                    found_allowing_page_number(normalized_anchor, reader_normalized):
+                hits = 1        # 被行号或页码打断，不是真的找不到
             if hits == 0:
                 add_issue(errors, "ANCHOR_NOT_FOUND",
                           f"{question}/{component} 的 paper_anchor 无法在阅读版检索：{anchor or '<empty>'}")
@@ -729,6 +733,28 @@ def validate_rubric(
     if total < target_score:
         add_issue(expansions, "RUBRIC_BELOW_TARGET", f"总分 {total:g} < 目标 {target_score:g}")
     return total
+
+
+def found_allowing_page_number(anchor: str, haystack: str, max_digits: int = 5) -> bool:
+    """锚点在 haystack 中出现，允许中间被至多一处纯数字打断。
+
+    PDF 回读的是渲染后的文本流，其中混着行号与页码。它们会插进句子或代码行的中间：
+    实测两例——`"status")33]`（lstlisting 行号 33 卡在 `)` 与 `]` 之间）、
+    `这不是模型失效而6是地形使然`（页码 6 卡在句子中间）。两次都报成了假的
+    ANCHOR_NOT_FOUND / APPENDIX_CODE_STALE。
+
+    只在直接匹配失败后才调用本函数，且只允许**一处**插入：允许多处会让匹配过于宽松，
+    把真正的内容差异也放过去。切分点自适应采样，短锚点逐字符试、长锚点按比例抽样，
+    上限约 16 次；写死步长 4 会让 6 字符的短锚点一个切分点都取不到（本轮踩过）。
+    """
+    if anchor in haystack:
+        return True
+    step = max(1, len(anchor) // 16)
+    for cut in range(1, len(anchor), step):
+        head, tail = anchor[:cut], anchor[cut:]
+        if re.search(re.escape(head) + r"\d{1,%d}" % max_digits + re.escape(tail), haystack):
+            return True
+    return False
 
 
 def source_signature(path: Path) -> str | None:
