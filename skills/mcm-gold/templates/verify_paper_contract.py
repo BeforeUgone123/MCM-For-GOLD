@@ -745,6 +745,12 @@ def source_signature(path: Path) -> str | None:
 
 
 ANCHOR_MIN_LEN = 16
+# 原始行（含缩进）超过此长度就不做锚点。lstlisting 的 breaklines 会在显示宽度处
+# 折断长行，而续行照样带行号，于是行号数字被插进代码中间——2025D 实测：
+# 一行 103 字符的源码在 PDF 里变成 `"status")33]`，行号 33 卡在 `)` 与 `]` 之间，
+# 报出 133 条锚点缺 1 条的假漂移。「行内片段不会被行号打断」这个前提，
+# 只在行不被折断时成立。
+ANCHOR_MAX_RAW_LEN = 90
 # 命中率低于此值判定为「根本没收录」，而不是「收录了但过期」。
 # 依据（2025C 实测三组）：版本一致 100%；版本过期（nipt_core.py 少了路径自锚定那几行）
 # 84.6%；根本没收录（build_paper.py 不在附录里）10%——后者的命中全部来自
@@ -776,7 +782,7 @@ def source_anchors(path: Path, min_len: int = ANCHOR_MIN_LEN) -> list[str]:
         return []
     anchors: list[str] = []
     for line in lines:
-        if not line.isascii():
+        if not line.isascii() or len(line) > ANCHOR_MAX_RAW_LEN:
             continue
         squashed = normalize(line)
         if len(squashed) >= min_len:
