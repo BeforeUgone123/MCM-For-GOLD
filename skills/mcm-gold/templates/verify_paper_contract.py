@@ -641,8 +641,21 @@ def validate_coverage(
         elif status != "PASS":
             add_issue(errors, "INVALID_COVERAGE_STATUS", f"{question}/{component} 使用 status={status or '<empty>'}")
         anchor = row["paper_anchor"]
-        if status != "N_A" and (not anchor or normalize(anchor) not in reader_normalized):
-            add_issue(errors, "ANCHOR_NOT_FOUND", f"{question}/{component} 的 paper_anchor 无法在阅读版检索：{anchor or '<empty>'}")
+        if status != "N_A":
+            hits = reader_normalized.count(normalize(anchor)) if anchor else 0
+            if hits == 0:
+                add_issue(errors, "ANCHOR_NOT_FOUND",
+                          f"{question}/{component} 的 paper_anchor 无法在阅读版检索：{anchor or '<empty>'}")
+            elif hits > 1:
+                # 锚点用于切出每问的正文区间。全文出现多次时区间会串到别章，
+                # 后续的每问字数、公式数、图表数统统算到错误的章节上，而报告看起来完全正常。
+                # 2025C 实测：「任务接口」「解释边界」在四章都有，Q1 被算成 11 个编号公式
+                # （实有 3 个）、Q2 被算成 0 个（实有 8 个）。此前只查「找得到」，
+                # 于是这类锚点一路放行。锚点必须唯一，且不含数学符号（PDF 回读的是渲染后文本）。
+                add_issue(errors, "ANCHOR_NOT_UNIQUE",
+                          f"{question}/{component} 的 paper_anchor 在阅读版出现 {hits} 次，"
+                          f"无法唯一定位区间：{anchor}。改用该问独有的短语——"
+                          "非唯一锚点会把每问区间串到别章，使逐问统计静默算错。")
         if component == "validation":
             if not RISK_ID_RE.search(row["claim_or_risk_ids"]):
                 add_issue(errors, "VALIDATION_WITHOUT_RISK", f"{question}/validation 未关联 K-id")

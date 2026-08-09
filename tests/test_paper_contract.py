@@ -352,6 +352,19 @@ class PaperContractTests(unittest.TestCase):
         warning_codes = {item["code"] for item in report["warnings"]}
         self.assertIn("SOURCE_CONTENT_NOT_CHECKABLE", warning_codes)
 
+    def test_anchor_appearing_twice_is_rejected(self) -> None:
+        """锚点非唯一 = 区间会串到别章，逐问统计静默算错（2025C 实测：Q1 报 11 式实有 3 式）。"""
+        # 用正文里本就反复出现的填充句做锚点——检查的是**论文文本**中的出现次数
+        for row in self.coverage_rows:
+            if row["component"] == "result":
+                row["paper_anchor"] = FILLER_SENTENCES[0]
+        self.write_valid_files()
+        result, report = self.run_contract()
+        codes = {item["code"] for item in report["errors"]}
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("ANCHOR_NOT_UNIQUE", codes)
+        self.assertNotIn("ANCHOR_NOT_FOUND", codes)
+
     def test_reader_submission_body_drift_fails(self) -> None:
         text = self.submission.read_text(encoding="utf-8")
         self.submission.write_text("提交版擅自改写正文\n" + text, encoding="utf-8")
