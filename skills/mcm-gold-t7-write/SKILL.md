@@ -24,7 +24,7 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 6. 按[写作与评分](../mcm-gold/references/rubric-and-writing.md)的篇幅预算 target 列写作：阅读版正文 19–29 页、总汉字 ≥15000；每问建模求解 ≥1200 汉字、≥4 个编号公式、≥1 张结果表；摘要 600–850 字、≥8 处含单位数值、逐问段全覆盖；模型评价 230–450 字且每条优缺点带正文锚点（式号/图表号/专有名词）。每问落实“每问正文必备清单”（接口段 -> 编号公式定义 -> 算法步骤 -> 结果表五要素 -> 验证小节 -> 边界段）；简洁=每句有信息，低于 floor 的“简洁”按缺证据处理，不得为凑页数注水。
 7. 检验形态三选一：独立成章、嵌入每问小节或并入模型评价章，形态自选但要素缺一即 `NEEDS_EXPANSION`；要素清单（误差分析数字句、≥2 类灵敏度各含扰动幅度+最大偏差+判定句、关键假设逐条回收、多次运行或基线对照、负结果保留）与判定标准见[写作与评分](../mcm-gold/references/rubric-and-writing.md)的“检验三种等价合规形态”。
 8. 初始化 `PAPER_COVERAGE_LEDGER.csv`，每问固定 `interface/definition/algorithm/result/validation/boundary` 六行。先从 T1/T6 回填所需内容和 C/K/R/P/V/D-id；完成实际 PDF 渲染后再回填可由 `pdftotext` 检索的 `paper_anchor`、`observed` 与状态。不得用目录标题、代码附录或支撑包路径冒充正文覆盖。
-9. 先修 `work_type -> section role -> paragraph logic -> claim/evidence/boundary`，最后润色句子。不得用流畅语言隐藏证据缺口或让 AI 新造核心论证。
+9. 先修 `work_type -> section role -> paragraph logic -> claim/evidence/boundary`，最后润色句子。不得用流畅语言隐藏证据缺口或让 AI 新造核心论证。**凡用 AI 做过润色、降重或"拟人化"改写，必须跑 [`verify_prose_revision.py`](../mcm-gold/templates/verify_prose_revision.py) 比对修订前后并读实际输出**，不得凭"只是改了措辞"推定安全。2025D 实测一轮 60 段 AI 改写：范围号 `$15$--$198$ \si{m}`（15 到 198 米）被改成 `$15$:$198$`（读作 15 比 198）共 5 处，数字与 LaTeX 结构都没变、段落级的占位符/数字/语言/长度四道闸一道没响；确定结论被"可能"弱化 5 处；明令禁止的模板连接词净增 18 次；句长标准差 20.4 → 17.8——**以"降 AI 率"为目的的改写，实测把 AI 味改重了**。数字守恒是这一步的最低门槛而不是充分条件，润色也不可假定为改进。
 10. 模型假设说明依据与影响；创新点用同预算基线收益表达；失败或不确定性放在结果附近，不埋在结尾。
 11. 凡把模型输出用于新场景/新数据的结论，正文 MUST 给出支撑域比例与被拒绝的外推部分，并写明对域外样本不给结论的理由。诚实标注拒答范围比给出一个域外的漂亮数字更容易得分——后者评委一核对分布就会当场质疑。
 12. 摘要最后写成微型论文：问题/难点、路线、每问具体数值、信任证据、创新和关键边界。所有数字从 R-id 回读。
@@ -49,6 +49,7 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 - 从覆盖账本派生的 `MCM-Result/Review-Results/T7_ARGUMENT_AUDIT.md`、`NATURE_QA.csv`；`SOURCE_DATA_MAP.csv` 放 `Intermediate-Outputs/`。
 - 更新后的 claim 台账放 `Intermediate-Outputs/`，figure review 台账放 `Review-Results/`。
 - `MCM-Result/Review-Results/T7_H004_BRIEF.md`：结果解释、摘要结论、主图和剩余风险。
+- 正文经 AI 润色/改写时：`MCM-Result/Review-Results/T7_PROSE_REVISION.json`（`verify_prose_revision.py` 的输出），并在 `AI_USAGE.md` 登记该环节的模型、提示与人工核验。
 
 ## 独立 Review
 
@@ -56,6 +57,6 @@ description: 数学建模竞赛 T7 论文与图表专家。内置 Nature SourceM
 
 ## Gate
 
-SourceModel、claim/figure/source-data 台账与论文一致；全文数字可追溯；摘要有具体数值和边界；`PAPER_COVERAGE_LEDGER.csv` 每问六项无 `WEAK/MISSING` 且锚点能在实际阅读版检索，validation 与主要 K-id 和检验证据闭环；图表经真实渲染核查；引用可访问且支撑等级足够，每条参考文献可追到书目库、前沿卡源列或已核验 S-id；2026 版 AI 声明位于参考文献之前且与过程记录一致；适用 Office 文件经 `officecli validate/view` 回读；两版共享科学正文且提交版确含实际文件列表和完整源程序；固定七维 rubric 总分达到目标且无单项低于及格线。live 模式的 `T7_PAPER_CONTRACT.json` 必须为 `PASS` 且由人完成 H-004，否则阶段返回 `NEEDS_HUMAN` 或 `BLOCKED`；无人演练契约上限为 `PROXY_REHEARSAL`，只能以非正式演练状态交接。
+SourceModel、claim/figure/source-data 台账与论文一致；全文数字可追溯；摘要有具体数值和边界；`PAPER_COVERAGE_LEDGER.csv` 每问六项无 `WEAK/MISSING` 且锚点能在实际阅读版检索，validation 与主要 K-id 和检验证据闭环；图表经真实渲染核查；引用可访问且支撑等级足够，每条参考文献可追到书目库、前沿卡源列或已核验 S-id；2026 版 AI 声明位于参考文献之前且与过程记录一致；适用 Office 文件经 `officecli validate/view` 回读；两版共享科学正文且提交版确含实际文件列表和完整源程序；固定七维 rubric 总分达到目标且无单项低于及格线；**正文若经 AI 润色或改写，`T7_PROSE_REVISION.json` 无 error，warning 逐条看过并记录采纳与否**——不得以"只改了措辞"跳过这一项。live 模式的 `T7_PAPER_CONTRACT.json` 必须为 `PASS` 且由人完成 H-004，否则阶段返回 `NEEDS_HUMAN` 或 `BLOCKED`；无人演练契约上限为 `PROXY_REHEARSAL`，只能以非正式演练状态交接。
 
 把最终主张、论文文件哈希、主图状态、H-004、剩余表达风险和 T8 打包白名单写入 `[HANDOFF T7]`。
