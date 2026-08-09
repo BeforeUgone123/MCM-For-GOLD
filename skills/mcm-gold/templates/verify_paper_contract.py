@@ -770,6 +770,8 @@ def source_signature(path: Path) -> str | None:
     return max(candidates, key=len, default=None)
 
 
+# 逐问篇幅的最大/最小比值上限，超过即提示失衡。依据见 assess_targets 内注释。
+QUESTION_BALANCE_RATIO = 3.0
 ANCHOR_MIN_LEN = 16
 # 原始行（含缩进）超过此长度就不做锚点。lstlisting 的 breaklines 会在显示宽度处
 # 折断长行，而续行照样带行号，于是行号数字被插进代码中间——2025D 实测：
@@ -1234,6 +1236,27 @@ def assess_targets(
                 4,
                 None,
                 " 式",
+            )
+
+    # 问间均衡：只查每问的绝对下限，会漏掉「某问写透、某问一笔带过」这种失衡。
+    # 评委按问分配注意力，最薄的一问决定观感；而过厚的一问往往是把不属于它的内容
+    # 堆了进去。实测两例：2025C 四问 1659/1939/2000/3373 字（比值 2.03，观感均衡、
+    # 契约零 error）；2025D 四问 1845/1191/778/2399（比值 3.08，Q3 一笔带过而 Q4
+    # 承担了本该分给 Q3 的双源论述）。阈值 3.0 落在两者之间，且只作 warning——
+    # 问间篇幅本就允许差异，只有悬殊到某问被架空才值得提醒。
+    spans = {q: it.get("cjk_chars") for q, it in questions.items()
+             if it.get("span_available") and it.get("cjk_chars")}
+    if len(spans) >= 2:
+        thinnest = min(spans, key=spans.get)
+        thickest = max(spans, key=spans.get)
+        ratio = spans[thickest] / spans[thinnest]
+        if ratio > QUESTION_BALANCE_RATIO:
+            record(
+                "QUESTION_LENGTH_IMBALANCE",
+                f"逐问篇幅悬殊：{thickest} {spans[thickest]} 字是 {thinnest} "
+                f"{spans[thinnest]} 字的 {ratio:.2f} 倍（阈值 {QUESTION_BALANCE_RATIO}）。"
+                f"最薄的一问决定评委观感；过厚的一问常是把本属别问的论述堆了进去。"
+                f"检查 {thinnest} 是否被一笔带过，以及 {thickest} 里有没有该挪走的内容",
             )
 
     return {
