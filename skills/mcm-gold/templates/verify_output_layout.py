@@ -35,6 +35,9 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -129,6 +132,168 @@ def scan_extra_dirs(root: Path) -> list[str]:
         p.name for p in root.iterdir()
         if p.is_dir() and p.name not in CANONICAL_DIRS and not p.name.startswith(".")
     )
+
+
+# 各题标题里都可能出现的通用词，不能当作某一题的指纹
+GENERIC_TERMS = frozenset({
+    "模型", "方案", "策略", "方法", "分析", "优化", "问题", "确定", "选择",
+    "判定", "研究", "设计", "评价", "预测", "控制", "系统", "数据", "计算",
+    "求解", "算法", "建模", "决策", "规划", "识别", "检测", "估计", "仿真",
+})
+
+TITLE_RE = re.compile(r"\\title\{([^}]*)\}")
+CJK_RUN_RE = re.compile(r"[\u4e00-\u9fff]{2,}")
+
+
+def _paper_title(workspace: Path) -> str:
+    main_tex = workspace / "Paper-Outputs" / "paper" / "main.tex"
+    if not main_tex.is_file():
+        return ""
+    match = TITLE_RE.search(main_tex.read_text(encoding="utf-8", errors="ignore"))
+    if not match:
+        return ""
+    return re.sub(r"\\[A-Za-z]+\s*", "", match.group(1)).strip()
+
+
+def _bigrams(text: str) -> set[str]:
+    grams: set[str] = set()
+    for run in CJK_RUN_RE.findall(text):
+        for i in range(len(run) - 1):
+            grams.add(run[i:i + 2])
+    return grams
+
+
+def _paper_corpus(workspace: Path) -> str:
+    paper_dir = workspace / "Paper-Outputs" / "paper"
+    if not paper_dir.is_dir():
+        return ""
+    return "\n".join(p.read_text(encoding="utf-8", errors="ignore")
+                     for p in sorted(paper_dir.glob("*.tex")))
+
+
+def _problem_statement(workspace: Path) -> str:
+    """官方赛题原文。`cumcm-*` 是各题共有的规则/格式文件，不是题目内容。"""
+    materials = workspace / "Competition-Materials"
+    if not materials.is_dir():
+        return ""
+    chunks: list[str] = []
+    for path in sorted(materials.iterdir()):
+        if not path.is_file() or path.name.startswith("cumcm-"):
+            continue
+        suffix = path.suffix.lower()
+        if suffix in {".md", ".txt"}:
+            chunks.append(path.read_text(encoding="utf-8", errors="ignore"))
+        elif suffix == ".pdf":
+            try:
+                proc = subprocess.run(["pdftotext", "-q", str(path), "-"],
+                                      capture_output=True, text=True, timeout=60)
+                chunks.append(proc.stdout)
+            except (OSError, subprocess.SubprocessError):
+                continue
+    return "\n".join(chunks)
+
+
+def _bigram_counts(text: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for run in CJK_RUN_RE.findall(text):
+        for i in range(len(run) - 1):
+            gram = run[i:i + 2]
+            counts[gram] = counts.get(gram, 0) + 1
+    return counts
+
+
+TOPIC_TERMS_NAME = "TOPIC_TERMS.txt"
+PROBLEM_MIN = 5          # 生成候选词时，在赛题里至少出现这么多次
+FOREIGN_MIN_TERMS = 2    # 词是人确认过的，两个不同词同时出现已经很难是巧合
+FOREIGN_MIN_TOTAL = 5
+
+
+def read_topic_terms(workspace: Path) -> list[str]:
+    """读本题的专属词表：`Competition-Materials/TOPIC_TERMS.txt`，一行一词，# 开头为注释。"""
+    path = workspace / "Competition-Materials" / TOPIC_TERMS_NAME
+    if not path.is_file():
+        return []
+    terms = []
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if len(line) >= 2:
+            terms.append(line)
+    return terms
+
+
+def suggest_topic_terms(workspace: Path, limit: int = 20) -> list[tuple[str, int]]:
+    """从官方赛题原文里挑候选专属词，供人删减后写进 TOPIC_TERMS.txt。
+
+    只挑「在本题赛题里高频、在兄弟题赛题里一次不出现」的 2-gram。这一步只做建议，
+    不自动落盘：候选里混着「文件」「网络」这类词，必须人过一遍。
+    """
+    if shutil.which("pdftotext") is None:
+        return []
+    own = _bigram_counts(_problem_statement(workspace))
+    if not own:
+        return []
+    others = []
+    for candidate in sorted(workspace.parent.iterdir()):
+        if not candidate.is_dir() or candidate.resolve() == workspace.resolve():
+            continue
+        text = _problem_statement(candidate)
+        if text.strip():
+            others.append(_bigram_counts(text))
+    ranked = [(g, n) for g, n in own.items()
+              if n >= PROBLEM_MIN and g not in GENERIC_TERMS
+              and all(o.get(g, 0) == 0 for o in others)]
+    return sorted(ranked, key=lambda kv: -kv[1])[:limit]
+
+
+def scan_foreign_topic(root: Path) -> tuple[list[dict], str]:
+    """检查论文正文里有没有混进兄弟工作区那道题的内容。
+
+    同机常有 `MCM-Result-2025B/`、`MCM-Result-2025D/` 这样的并存工作区，而 shell 的
+    当前目录跨命令持久。实测事故：给 2025D 补写章节时 cwd 仍停在 2025B，一整节矿井
+    突水的内容被写进了 2025B 的论文并连带重编译。路径合法、结构合法、契约照过——
+    当时靠「编译出的页数与预期对不上」才发现，没有任何检查拦得住。
+
+    词表由人确认，不自动推断。三种自动指纹都实测失败过：
+    标题 2-gram 复现真实事故时一条没命中（写错进去的整节讲「巷道」「矿工」，标题里
+    没有）；论文正文 2-gram 挑出的是「题面」「依赖」「入口」这类**作者措辞习惯**词；
+    赛题原文 2-gram 已经能挑出「巷道」「突水」「碳化硅」这些真名词，但仍混进「文件」
+    「段数」「点的」，在四个真实工作区上三个误报。
+    本文件开头就写着「高误报的门禁会训练人忽略警告」——所以这里改成 `--suggest-topic-terms`
+    出候选、人删减后落盘 `Competition-Materials/TOPIC_TERMS.txt`，检查只用确认过的词。
+    T0 本来就要精读赛题，挑五六个专属名词是顺手的事，换来的是零误报。
+
+    返回 (命中列表, 状态)。没有词表就 SKIPPED，不假装检查过。
+    """
+    own_terms = set(read_topic_terms(root))
+    own_body = _paper_corpus(root)
+    if not own_body:
+        return [], "SKIPPED_NO_PAPER"
+    if not own_terms:
+        return [], "SKIPPED_NO_TOPIC_TERMS"
+
+    hits: list[dict] = []
+    for sibling in sorted(root.parent.iterdir()):
+        if not sibling.is_dir() or sibling.resolve() == root:
+            continue
+        foreign_terms = [t for t in read_topic_terms(sibling) if t not in own_terms]
+        found = {t: own_body.count(t) for t in foreign_terms if t in own_body}
+        total = sum(found.values())
+        if not found:
+            continue
+        # 分两档：整节写错工作区会同时带进好几个专属词、几十次命中，那是 error；
+        # 零星一两次可能是正文里正当地提了一句别的场景，只提示不阻断。
+        # 实测：一整节 2025D 内容写进 2025B 会命中「巷道 14、逃生 5、突水 4」，
+        # 而只写进 12 行时总共才 3 次——所以低档不能没有。
+        level = ("error" if len(found) >= FOREIGN_MIN_TERMS
+                 and total >= FOREIGN_MIN_TOTAL else "warning")
+        hits.append({
+            "sibling": sibling.name,
+            "sibling_title": _paper_title(sibling),
+            "matched": found,
+            "total": total,
+            "level": level,
+        })
+    return hits, "CHECKED"
 
 
 def _first_existing(root: Path, *candidates: str) -> str | None:
@@ -290,9 +455,24 @@ def main() -> int:
     parser.add_argument("--write-index", action="store_true",
                         help=f"生成/刷新 {INDEX_NAME}；不加则只校验")
     parser.add_argument("--output", type=Path, default=None, help="JSON 报告落盘路径")
+    parser.add_argument("--suggest-topic-terms", action="store_true",
+                        help=f"从官方赛题原文挑题目专属词候选，供人删减后写进 "
+                             f"Competition-Materials/{TOPIC_TERMS_NAME}")
     args = parser.parse_args()
 
     root = args.workspace.resolve()
+
+    if args.suggest_topic_terms:
+        candidates = suggest_topic_terms(root)
+        if not candidates:
+            print("没能生成候选：需要 pdftotext，且 Competition-Materials/ 下要有"
+                  "非 cumcm-* 的赛题原文，同级还要有别的工作区可比。")
+            return 2
+        print(f"# {root.name} 的题目专属词候选（在本题赛题高频、兄弟题赛题零命中）")
+        print(f"# 删掉通用词后存为 Competition-Materials/{TOPIC_TERMS_NAME}，一行一个")
+        for term, count in candidates:
+            print(f"{term}    # 赛题中 {count} 次")
+        return 0
     report: dict = {"schema_version": 1, "workspace": str(root)}
     errors: list[str] = []
     warnings: list[str] = []
@@ -330,6 +510,26 @@ def main() -> int:
               "虚拟环境放 Intermediate-Outputs/venv/。"
               "实测一个 .venv 就能让源码目录从 16 个文件涨到 14652 个，人类无法 review。"
         )
+
+    foreign, foreign_status = scan_foreign_topic(root)
+    report["foreign_topic_hits"] = foreign
+    report["foreign_topic_scan"] = foreign_status
+    if foreign_status == "SKIPPED_NO_TOPIC_TERMS":
+        warnings.append(
+            f"TOPIC_TERMS_MISSING 没有 Competition-Materials/{TOPIC_TERMS_NAME}，"
+            "跨工作区串题检查未执行。跑 --suggest-topic-terms 出候选，"
+            "删掉「文件」「网络」这类通用词后落盘即可。")
+    for hit in foreign:
+        sample = "、".join(f"{g}×{n}" for g, n in
+                           sorted(hit["matched"].items(), key=lambda kv: -kv[1])[:6])
+        line = (
+            f"FOREIGN_TOPIC_CONTENT 论文正文出现兄弟工作区 {hit['sibling']}"
+            f"（《{hit['sibling_title']}》）的题目专属词：{sample}，共 {hit['total']} 次。"
+            "多工作区并存时 shell 的 cwd 跨命令持久，写文件用相对路径极易落到隔壁题目上；"
+            "实测发生过一整节内容写错工作区并连带重编译，路径与结构全部合法、无一检查报警。"
+            "先核对这几处正文属于哪道题，确认无误再豁免。"
+        )
+        (errors if hit["level"] == "error" else warnings).append(line)
 
     build = scan_build_artifacts(root)
     report["build_artifacts_in_deliverables"] = build

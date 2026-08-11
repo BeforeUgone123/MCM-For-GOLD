@@ -22,6 +22,7 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 5. 固定依赖、随机种子、编码、时区和字体；用最小依赖集而非临时堆包。缺工具时选择可维护降级路线并写 `RISKS.md`。
 6. 准备论文骨架、图表样式、引用方式、代码入口和状态台账。使用 [`paper-templates.md`](../mcm-gold/templates/paper-templates.md)、[`workspace-templates.md`](../mcm-gold/templates/workspace-templates.md)与 [`run_all.py`](../mcm-gold/templates/run_all.py)。
 7. 建立匿名基线扫描：作者字段、PDF 元数据、代码路径、图片 EXIF、工作簿属性和压缩包文件名。
+7b. **同机有别的题目工作区时，登记本题专属词**：跑 `verify_output_layout.py --workspace MCM-Result --suggest-topic-terms` 拿候选，删掉「文件」「网络」「位置」这类通用词，把剩下的五六个题目名词存成 `MCM-Result/Competition-Materials/TOPIC_TERMS.txt`（一行一个）。读赛题时顺手就做完了，换来的是 `FOREIGN_TOPIC_CONTENT` 能拦住跨工作区串题——shell 的 cwd 跨命令持久，实测发生过一整节内容写进隔壁题目的论文并连带重编译，路径与结构全部合法、无一检查报警。词表必须人确认：自动指纹试过三种，误报都高到会训练人忽略警告。
 8. 选最近三年中的至少一道历年题做 rehearsal。先冻结题面和输入，再记录真实墙钟；读取同题讲评或展示论文前结束 holdout。
 9. 在 30 分钟时间盒内完成“读数据 -> 最小模型 -> 结果图 -> PDF -> 支撑包重跑”的烟雾测试。烟雾测试 MUST 在**全新目录 + 全新虚拟环境**下按支撑包 README 原文执行，验证的是"评委照说明能跑通"，不是"我们自己的机器能跑通"。
 10. 固化内置 Nature 工具链：确认 Python/R 绘图运行时、SVG/PDF 可编辑文本、字体回退、最终尺寸预览和矢量回读；`paper_format=word` 时同时实测 `officecli validate/view`。
