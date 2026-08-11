@@ -273,6 +273,34 @@ class EvidenceMapSeeding(unittest.TestCase):
             self.assertIn("F-002.csv", target.read_text(encoding="utf-8"))
 
 
+class WorkspaceSeeding(unittest.TestCase):
+    """检索日志必须在第一次检索之前就存在，所以由 init 负责落地。"""
+
+    def test_init_seeds_search_log_and_is_idempotent(self) -> None:
+        module = _load(TEMPLATES / "init_result_workspace.py", "_init")
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            first = module.initialize(tmp)
+            self.assertIn("Reference-Papers/SEARCH_LOG.md", first["seeded"])
+            log = tmp / "MCM-Result/Reference-Papers/SEARCH_LOG.md"
+            self.assertTrue(log.is_file())
+
+            log.write_text("真实记录\n", encoding="utf-8")
+            second = module.initialize(tmp)
+            self.assertEqual(second["seeded"], [])
+            self.assertEqual(log.read_text(encoding="utf-8"), "真实记录\n")
+
+    def test_fresh_workspace_passes_search_discipline(self) -> None:
+        module = _load(TEMPLATES / "init_result_workspace.py", "_init2")
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            module.initialize(tmp)
+            proc = _run("verify_search_discipline.py",
+                        "--workspace", str(tmp / "MCM-Result"))
+            self.assertEqual(proc.returncode, 0, proc.stdout)
+            self.assertNotIn("SEARCH_LOG_MISSING", proc.stdout)
+
+
 class ProseRevisionChecks(unittest.TestCase):
     ORIGINAL = ("由式~\\eqref{eq:b} 可知，禁行时刻只占全过程的 $6.9\\%$——"
                 "\\textbf{巷道进水后很快就不能走了}，残差 $15$--$198$ \\si{m}。\n")
