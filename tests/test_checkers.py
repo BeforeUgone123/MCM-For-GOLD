@@ -215,6 +215,19 @@ class LedgerChecks(unittest.TestCase):
                              "<容差>,R-001,x,2026-08-11T00:00:00+08:00,PASS")
             self.assertIn("LEDGER_PLACEHOLDER_ROW", " ".join(self._errors(tmp)))
 
+    def test_inequalities_are_not_placeholders(self) -> None:
+        """`10674<15000、摘要 879>850` 是数学比较，不是模板占位符。
+
+        实测误报：某工作区的通过项写「正文汉字 10674<15000、摘要 879>850」，
+        `<15000、摘要 879>` 被整段当成占位符报了 error。
+        """
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            self._write(tmp, "P-001,T8,篇幅,Data-Figures/F-001.pdf,"
+                             "\"正文 10674<15000、摘要 879>850\",floor 是下限,"
+                             "K-014,AI,2026-08-11T00:00:00+08:00,PASS")
+            self.assertEqual(self._errors(tmp), [])
+
 
 class EvidenceMapSeeding(unittest.TestCase):
     """种出来的骨架必须能直接通过核对，否则等于把手工负担换成了返工负担。"""

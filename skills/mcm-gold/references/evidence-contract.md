@@ -31,6 +31,12 @@
 
 不是所有局部诊断都要建全套表；一旦内容将进入论文、摘要或提交包，就必须补齐相应链路。
 
+**台账与检查器输出的分工**：`Review-Results/*.json` 是通用契约检查器的原始输出，由检查器自己写；
+`REVIEW_PASS_ITEMS.csv` 装本题特有的验收项（约束残差、守恒、量纲、收敛、容差比对）。
+两者不重叠，也不得互相手抄。前者能靠重跑重建，后者不能——它的 `expected_or_tolerance` 是判据，
+按[对抗门禁](adversarial-gates.md)第 33 条必须在运行前落盘，事后回填等于看完结果再定阈值。
+**这是它没有 `seed_*` 脚本的原因**：可以种的是事实，不能种的是当时的判断。
+
 上面这些 CSV 的表头由 [`workspace-templates.md`](../templates/workspace-templates.md) 定义，
 并由 [`verify_ledgers.py`](../templates/verify_ledgers.py) 直接解析那份文档来核对——检查器
 里不再抄第二份表头，否则文档与检查迟早各说各话。它查的是缺表、只有表头、表头漂移、

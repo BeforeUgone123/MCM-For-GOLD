@@ -47,7 +47,9 @@ SEARCH_DIRS = ("Intermediate-Outputs", "Review-Results")
 
 SECTION_RE = re.compile(r"^##\s+([A-Za-z0-9_]+\.csv)\s*$", re.M)
 FENCE_RE = re.compile(r"```csv\n(.*?)\n```", re.S)
-PLACEHOLDER_RE = re.compile(r"<[^<>\n]{1,40}>")
+# `<` 后紧跟数字或 `=` 的是数学比较，不是模板占位符。实测误报：某台账写
+# 「正文汉字 10674<15000、摘要 879>850」，`<15000、摘要 879>` 被整段当成了占位符。
+PLACEHOLDER_RE = re.compile(r"<(?![\d=])[^<>\n]{1,40}>")
 TIMESTAMP_COLUMN_RE = re.compile(r"(_at|_time|timestamp)$", re.I)
 
 # 跨表通用的列型。列名相同的列在不同台账里语义一致，所以规则写一次即可：

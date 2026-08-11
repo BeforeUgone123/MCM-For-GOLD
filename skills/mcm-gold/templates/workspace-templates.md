@@ -136,6 +136,16 @@ dimension,score,max_score,pass_score,evidence,observed,status
 
 “已检查”不是证据；每行必须写实际观测和期望/容差。
 
+装的是**这道题特有的验收项**——约束残差、守恒、量纲、收敛、容差比对这类只有本题才谈得上的检查。
+通用契约检查器（`verify_paper_contract` / `verify_output_layout` / `verify_ledgers` / `verify_evidence_map` /
+`verify_search_discipline` / `verify_clean_reproduction`）的结果由它们自己写进 `Review-Results/*.json`，
+**不要手抄进这张表**：抄一份就有两处会不一致，而不一致的汇总比没有汇总更误导。
+
+**必须在检查执行的当时写，不能事后补。**`expected_or_tolerance` 是判据，
+[对抗门禁](../references/adversarial-gates.md)第 33 条要求判据阈值在运行**之前**落盘；
+跑完再回填容差，就是看完结果再定阈值，三条判据一起失效。
+所以这张表没有、也不该有 `seed_*` 脚本——它记录的是当时做了什么，不是事后能重建的事实。
+
 ```csv
 pass_id,stage,item,file_location,observed,expected_or_tolerance,evidence,checker,checked_at,status
 P-001,T4,销量约束残差,MCM-Result/Intermediate-Outputs/logs/solver.log,0,<=1e-6,R-001,AI,2026-09-11T12:00:00+08:00,PASS

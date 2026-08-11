@@ -44,7 +44,7 @@ description: 数学建模竞赛 T6 检验与稳健性专家。用于执行正确
 - `MCM-Result/Review-Results/T6_VALIDATION_MATRIX.csv`：主张 x 六类检验 x R-id x 状态。
 - `MCM-Result/Review-Results/T6_ADVERSARIAL_REPORT.md`：攻击、失败、存活结论和降级建议。
 - 灵敏度/不确定性源表和图放 `MCM-Result/Data-Figures/`，验证脚本放 `Data-Scripts/`，干净重跑日志放 `Intermediate-Outputs/logs/`。
-- 更新后的 `MCM-Result/Intermediate-Outputs/RESULTS.md`、`CLAIM_LEDGER.csv`，以及 `Review-Results/FIGURE_EVIDENCE.csv`、`REVIEW_PASS_ITEMS.csv`。
+- 更新后的 `MCM-Result/Intermediate-Outputs/RESULTS.md`、`CLAIM_LEDGER.csv`，以及 `Review-Results/FIGURE_EVIDENCE.csv`、`REVIEW_PASS_ITEMS.csv`。**`REVIEW_PASS_ITEMS.csv` 必须在每项检查跑完的当时就写一行**，不能攒到 T8 补：`expected_or_tolerance` 是判据，[对抗门禁](../mcm-gold/references/adversarial-gates.md)第 33 条要求判据在运行前落盘，事后回填容差等于看完结果再定阈值。它只装本题特有的验收项（约束残差、守恒、量纲、收敛），通用检查器的结果留在各自的 `Review-Results/*.json`，不要手抄。实测四个工作区无一建立此表，而它是唯一无法事后重建的台账。
 - `MCM-Result/Review-Results/NATURE_QA.csv` 中主图统计、源数据、最终尺寸和过度主张检查记录。
 
 ## 独立 Review
