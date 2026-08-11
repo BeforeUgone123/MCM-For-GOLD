@@ -16,7 +16,12 @@ DRAFT/BLOCKED」，而实际工作区里根本没有这个文件。
   - 数据行里是否残留 `<实际观察>` 这类模板占位符——从模板复制时连样例行一起带进来、
     忘了删，是最常见的一种「看着填了其实没填」；
   - `*_at` 时间戳是否是合法 ISO8601。AGENTS.md 规定时间戳必须由 `date -Iseconds`
-    之类的命令取、不得手写，而手写留下的痕迹通常就是格式不合法或与文件 mtime 矛盾。
+    之类的命令取、不得手写，而手写留下的痕迹通常就是格式不合法或与文件 mtime 矛盾；
+  - 路径型列（`file_location`/`file`/`script`/`artifact`/`source_table`/`generated_by`/
+    `*_location`）指向的文件是否真的存在。这些列名分布在 5 个台账里、语义一致，所以
+    规则写一次即可。**「已核验」却指向不存在的文件，是通过项最容易空转的形态**：
+    读的人无从复核，而报告照样全绿；
+  - id 列是否为空、`observed` 是否为空。没有实际观测值的「通过项」不构成证据。
 
 用法：
     python3 verify_ledgers.py --workspace MCM-Result
@@ -44,6 +49,17 @@ SECTION_RE = re.compile(r"^##\s+([A-Za-z0-9_]+\.csv)\s*$", re.M)
 FENCE_RE = re.compile(r"```csv\n(.*?)\n```", re.S)
 PLACEHOLDER_RE = re.compile(r"<[^<>\n]{1,40}>")
 TIMESTAMP_COLUMN_RE = re.compile(r"(_at|_time|timestamp)$", re.I)
+
+# 跨表通用的列型。列名相同的列在不同台账里语义一致，所以规则写一次即可：
+# file_location / file / script / artifact / source_table / generated_by /
+# actual_location 分布在 5 个台账里，全部应当指向真实存在的文件。
+PATH_COLUMN_RE = re.compile(
+    r"^(file|artifact|script|source_table|generated_by|.*_location|.*_path|path)$",
+    re.I)
+# 只有长得像相对/绝对路径的值才去查存在性；`P-001`、`见正文` 这类不算
+PATHLIKE_RE = re.compile(r"^[\w./~-]+/[\w./-]+\.\w{1,8}$")
+STATUS_COLUMN_RE = re.compile(r"^(status|human_status|human_gate)$", re.I)
+OBSERVED_COLUMN_RE = re.compile(r"^observed$", re.I)
 
 
 def parse_contracts(path: Path) -> dict[str, list[str]]:
@@ -80,7 +96,20 @@ def valid_timestamp(value: str) -> bool:
     return True
 
 
-def check_one(name: str, header: list[str], path: Path) -> tuple[list[str], list[str], int]:
+def resolve_in_workspace(workspace: Path, raw: str) -> Path:
+    """台账里的路径可能带工作区前缀，也可能不带；两种都认。"""
+    candidate = Path(raw.strip().replace("\\", "/"))
+    if candidate.is_absolute():
+        return candidate
+    for base in (workspace, workspace.parent):
+        resolved = base / candidate
+        if resolved.exists():
+            return resolved
+    return workspace / candidate
+
+
+def check_one(name: str, header: list[str], path: Path,
+              workspace: Path) -> tuple[list[str], list[str], int]:
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -104,6 +133,7 @@ def check_one(name: str, header: list[str], path: Path) -> tuple[list[str], list
         return errors, warnings, 0
 
     index = {c: i for i, c in enumerate(actual)}
+    id_column = actual[0] if actual else ""
     for line_number, row in enumerate(data, start=2):
         joined = ",".join(row)
         stub = PLACEHOLDER_RE.findall(joined)
@@ -112,13 +142,29 @@ def check_one(name: str, header: list[str], path: Path) -> tuple[list[str], list
                 f"LEDGER_PLACEHOLDER_ROW {name}:{line_number} 残留模板占位符 "
                 f"{stub[:3]}——多半是复制样例行后没删或没填")
         for column, position in index.items():
-            if not TIMESTAMP_COLUMN_RE.search(column) or position >= len(row):
-                continue
-            value = row[position]
-            if value.strip() and not valid_timestamp(value):
+            value = row[position].strip() if position < len(row) else ""
+
+            if TIMESTAMP_COLUMN_RE.search(column) and value and not valid_timestamp(value):
                 warnings.append(
                     f"LEDGER_TIMESTAMP_INVALID {name}:{line_number} {column}="
-                    f"{value.strip()!r} 不是合法 ISO8601（时间戳应由 date -Iseconds 取）")
+                    f"{value!r} 不是合法 ISO8601（时间戳应由 date -Iseconds 取）")
+
+            # 台账登记的路径必须真的存在。这是「通过项」最容易空转的地方：
+            # 写一条「已核验」却指向一个不存在的文件，读的人无从复核。
+            if PATH_COLUMN_RE.match(column) and PATHLIKE_RE.match(value):
+                if not resolve_in_workspace(workspace, value).exists():
+                    errors.append(
+                        f"LEDGER_PATH_MISSING {name}:{line_number} {column}="
+                        f"{value} 指向不存在的文件")
+
+            if column == id_column and not value:
+                errors.append(f"LEDGER_BLANK_ID {name}:{line_number} 第一列（{column}）为空")
+            elif STATUS_COLUMN_RE.match(column) and not value:
+                warnings.append(f"LEDGER_BLANK_STATUS {name}:{line_number} {column} 为空")
+            elif OBSERVED_COLUMN_RE.match(column) and not value:
+                errors.append(
+                    f"LEDGER_BLANK_OBSERVED {name}:{line_number} observed 为空——"
+                    "没有实际观测值的「通过项」不构成证据")
     return errors, warnings, len(data)
 
 
@@ -157,7 +203,7 @@ def main() -> int:
             (errors if name in required else warnings).append(line)
             seen[name] = {"present": False}
             continue
-        file_errors, file_warnings, count = check_one(name, header, path)
+        file_errors, file_warnings, count = check_one(name, header, path, workspace)
         errors.extend(file_errors)
         warnings.extend(file_warnings)
         seen[name] = {"present": True, "rows": count,
