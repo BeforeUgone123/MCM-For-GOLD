@@ -25,7 +25,7 @@ description: 数学建模竞赛 T3 数据审计专家。用于建立数据字典
 7. 按独立实验单位划分数据；时序按时间切，分组样本按组隔离。把预处理拟合限制在训练折内。
 8. 对官方结果模板建立“业务键 -> 工作表/行/列”映射，登记合并单元格、公式、header/footer、样式和对象。先保留原包结构，再设计业务值、显示格式、包结构和字节哈希四层回读。
 9. 冻结清洗后数据和拆分索引，记录 SHA-256；后续修复生成新版本并登记 supersession。
-10. 建 `SOURCE_DATA_MAP.csv`，把 raw、processed、split、figure source、模型输出和第三方数据映射到 C/R/S/F-id、实际位置、哈希、访问路径、限制与生成脚本。**建完立即跑 [`verify_evidence_map.py`](../mcm-gold/templates/verify_evidence_map.py) 并读实际输出**——这条要求此前只有文字、没有机检，实测四个演练工作区里三个根本没建这个文件、剩下一个只有表头零条目，而其中一题走完了 T0–T8。哈希只登记不核对等于没登记：它是「主张 → 数据文件」的索引，一旦失效，所有 claim 的可追溯性一起失效。
+10. 建 `SOURCE_DATA_MAP.csv`：先跑 [`seed_evidence_map.py`](../mcm-gold/templates/seed_evidence_map.py) `--write` 扫出骨架（自动填 dataset_id、kind、实际位置、SHA-256、访问路径、生成脚本、时间戳），再人工补 C/R/S-id、限制与许可，逐行确认后才把 `status` 从 `PENDING` 改 `VERIFIED`。图或数据重生成后用 `--merge` 增量补，已填的语义列不会被冲掉。**手工从零填这张 13 列的表正是它从未被执行的原因**——实测四个工作区三个没建、一个只有表头；改成机器出骨架后，四个工作区一次补齐并全部通过核对。**建完立即跑 [`verify_evidence_map.py`](../mcm-gold/templates/verify_evidence_map.py) 并读实际输出**——这条要求此前只有文字、没有机检，实测四个演练工作区里三个根本没建这个文件、剩下一个只有表头零条目，而其中一题走完了 T0–T8。哈希只登记不核对等于没登记：它是「主张 → 数据文件」的索引，一旦失效，所有 claim 的可追溯性一起失效。
 11. 访问路径只用真实状态：`official_attachment|support_package|public_source|restricted_third_party|not_applicable`。没有真实仓库或条款时，不写 DOI、accession、license、embargo 或“可向作者索取”。
 
 ## 产物

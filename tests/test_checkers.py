@@ -216,6 +216,63 @@ class LedgerChecks(unittest.TestCase):
             self.assertIn("LEDGER_PLACEHOLDER_ROW", " ".join(self._errors(tmp)))
 
 
+class EvidenceMapSeeding(unittest.TestCase):
+    """种出来的骨架必须能直接通过核对，否则等于把手工负担换成了返工负担。"""
+
+    def _workspace(self, tmp: Path) -> None:
+        for folder in ("Competition-Materials", "Data-Figures", "Data-Scripts",
+                       "Intermediate-Outputs", "Paper-Outputs/results"):
+            (tmp / folder).mkdir(parents=True, exist_ok=True)
+        (tmp / "Competition-Materials/附件.xlsx").write_bytes(b"raw")
+        (tmp / "Data-Figures/F-001.csv").write_text("x,y\n1,2\n", encoding="utf-8")
+        (tmp / "Data-Figures/F-001.pdf").write_bytes(b"%PDF")
+        (tmp / "Paper-Outputs/results/result1.xlsx").write_bytes(b"out")
+        (tmp / "Data-Scripts/make_figures.py").write_text(
+            "# 生成 F-001.csv\n", encoding="utf-8")
+
+    def test_seed_then_verify_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            self._workspace(tmp)
+            seeded = _run("seed_evidence_map.py", "--workspace", str(tmp), "--write")
+            self.assertEqual(seeded.returncode, 0, seeded.stdout + seeded.stderr)
+            verified = _run("verify_evidence_map.py", "--workspace", str(tmp))
+            self.assertEqual(verified.returncode, 0, verified.stdout)
+            self.assertIn("PASS", verified.stdout)
+
+    def test_seed_records_real_hashes(self) -> None:
+        import hashlib
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            self._workspace(tmp)
+            _run("seed_evidence_map.py", "--workspace", str(tmp), "--write")
+            target = tmp / "Intermediate-Outputs/SOURCE_DATA_MAP.csv"
+            import csv as _csv
+            with target.open(encoding="utf-8", newline="") as handle:
+                rows = list(_csv.DictReader(handle))
+            self.assertTrue(rows)
+            for row in rows:
+                actual = hashlib.sha256(
+                    (tmp / row["actual_location"]).read_bytes()).hexdigest()
+                self.assertEqual(row["sha256"], actual, row["actual_location"])
+                self.assertEqual(row["status"], "PENDING")
+
+    def test_merge_keeps_human_filled_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            self._workspace(tmp)
+            _run("seed_evidence_map.py", "--workspace", str(tmp), "--write")
+            target = tmp / "Intermediate-Outputs/SOURCE_DATA_MAP.csv"
+            text = target.read_text(encoding="utf-8").replace(
+                "DS-F-001,figure_source,,", "DS-F-001,figure_source,C-007,")
+            target.write_text(text, encoding="utf-8")
+            (tmp / "Data-Figures/F-002.csv").write_text("a\n1\n", encoding="utf-8")
+            _run("seed_evidence_map.py", "--workspace", str(tmp),
+                 "--write", "--merge")
+            self.assertIn("C-007", target.read_text(encoding="utf-8"))
+            self.assertIn("F-002.csv", target.read_text(encoding="utf-8"))
+
+
 class ProseRevisionChecks(unittest.TestCase):
     ORIGINAL = ("由式~\\eqref{eq:b} 可知，禁行时刻只占全过程的 $6.9\\%$——"
                 "\\textbf{巷道进水后很快就不能走了}，残差 $15$--$198$ \\si{m}。\n")
