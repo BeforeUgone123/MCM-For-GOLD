@@ -31,7 +31,7 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 12. 准备 H-005 简报：最终文件名和哈希、论文契约、机器检查、清环境复现、三条红线留证、赛区要求、AI 披露、剩余风险、提交与覆盖计划。
 13. AI 不点击最终授权、不替人承担提交责任。由人确认 H-005 后执行平台操作并回读回执、下载文件、打开验证和哈希。
 14. 截止前 2 小时完成首次保底提交；平台允许覆盖时最迟截止前 1 小时停止覆盖，每次覆盖后重新核验回执和下载文件。
-15. 审计内置 Nature 闭环：`NATURE_QA.csv` 无未解释 DRAFT/BLOCKED，`SOURCE_DATA_MAP.csv` 的正文图/关键表均有真实路径和哈希，`MCM_SOURCE_MODEL.yaml` 与最终摘要/主图/限制一致。
+15. 审计内置 Nature 闭环：`NATURE_QA.csv` 无未解释 DRAFT/BLOCKED，`MCM_SOURCE_MODEL.yaml` 与最终摘要/主图/限制一致。`SOURCE_DATA_MAP.csv` **必须跑 [`verify_evidence_map.py`](../mcm-gold/templates/verify_evidence_map.py) `--require-figures` 并读实际输出**，不得靠肉眼「审计」——本条此前只有「均有真实路径和哈希」这句文字要求，实测某题走完 T0–T8 时该文件压根不存在，这一步照样声称通过。`--require-figures` 会要求每张正文图都能追到映射条目（图源表与图同名时登记源表即可）。
 16. 打开最终 SVG/PDF/PNG，检查最终尺寸、字体、重叠、裁剪、统计说明和 source data；不是只检查 T7 中间版本。
 17. `paper_format=word` 或存在 PPTX 时，直接运行并读取 `officecli validate/view issues/view text`，同时做渲染预览；结构通过不等于视觉通过。
 18. 检查引用无 metadata-only 支撑、期刊式数据声明没有虚构 DOI/仓储/许可、非必交 Nature 风格材料未混入提交白名单。
@@ -46,6 +46,7 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 - `MCM-Result/Intermediate-Outputs/reproduction/clean-<id>/`：解压、安装、运行和核对日志。
 - AI 披露文件、提交回执和下载复核记录放 `Paper-Outputs/`；`T8_H005_BRIEF.md` 放 `Review-Results/`。
 - `MCM-Result/Review-Results/NATURE_QA.csv` 终态、最终图表/Office 回读结果与 SourceModel 一致性记录；原始回读日志放 `Intermediate-Outputs/logs/`。
+- `MCM-Result/Review-Results/T8_EVIDENCE_MAP.json`：`verify_evidence_map.py --require-figures` 的输出，证明每条证据映射都指向真实文件且哈希与内容一致。
 
 ## 独立 Review
 
@@ -53,6 +54,6 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 
 ## Gate
 
-机器可检项全部读取实际输出；live 模式的 `T8_PAPER_CONTRACT.json` 对最终文件为 `PASS`，演练可为 `PROXY_REHEARSAL` 但不得称为正式可提交；逐问覆盖、固定七维 rubric、两版共享正文、实际文件列表与完整源程序均闭环；提交白名单包含显式 `*_submission.pdf` 且不含 `main.pdf`；最终包在新目录和全新环境复现；**三条取消资格红线（源程序可运行、运行结果与论文一致、支撑材料与论文相符）各有实测证据**，其中「附录代码 = 支撑包代码」必须由 `APPENDIX_CODE_STALE` 无命中来支撑，不得只凭 `code_check` 全绿推定；`T8_OUTPUT_LAYOUT.json` 为 `PASS` 且 `README.md` 索引为 `FRESH`；**赛区附加要求已核验**；内置 Nature 的证据、图表、SourceModel 和适用 Office QA 已闭环；匿名与元数据扫描通过；AI 披露与日志一致；检索日志无禁入域名采用记录；文件名、大小、哈希和回执可回读；H-005 由人签署。任何一项缺证据不得写“全绿”。
+机器可检项全部读取实际输出；live 模式的 `T8_PAPER_CONTRACT.json` 对最终文件为 `PASS`，演练可为 `PROXY_REHEARSAL` 但不得称为正式可提交；逐问覆盖、固定七维 rubric、两版共享正文、实际文件列表与完整源程序均闭环；提交白名单包含显式 `*_submission.pdf` 且不含 `main.pdf`；最终包在新目录和全新环境复现；**三条取消资格红线（源程序可运行、运行结果与论文一致、支撑材料与论文相符）各有实测证据**，其中「附录代码 = 支撑包代码」必须由 `APPENDIX_CODE_STALE` 无命中来支撑，不得只凭 `code_check` 全绿推定；`T8_OUTPUT_LAYOUT.json` 为 `PASS` 且 `README.md` 索引为 `FRESH`；**赛区附加要求已核验**；内置 Nature 的证据、图表、SourceModel 和适用 Office QA 已闭环，其中 `T8_EVIDENCE_MAP.json` 为 `PASS`——**证据映射存在、每条指向真实文件、哈希等于文件当前内容、正文图全部可追**，不得以「映射表在那儿」推定通过；匿名与元数据扫描通过；AI 披露与日志一致；检索日志无禁入域名采用记录；文件名、大小、哈希和回执可回读；H-005 由人签署。任何一项缺证据不得写“全绿”。
 
 平台、规则或环境造成重大阻碍时，不使用脆弱绕过；报告影响和可选降级，等待用户决定。收到真实评委/导师反馈后按[内置反馈闭环](../mcm-gold/references/nature-feedback.md)建立逐点修订，不伪造修改。把最终文件、哈希、检查、复现、H-005、回执和归档位置写入 `[HANDOFF T8]`。

@@ -21,7 +21,10 @@
   台账登记哪几个量、保留几位，入口就打印哪几个量、保留几位。
 - `CLAIM_LEDGER.csv`：claim_id、位置、措辞、数值/单位、R/S/F-id、状态、人确认。
 - `FIGURE_EVIDENCE.csv`：figure_id、claim_id、源表/脚本/run、图注、视觉检查和边界。
-- `SOURCE_DATA_MAP.csv`：raw/processed/figure source/model output 到 C/R/S/F-id、实际文件和哈希的映射。
+- `SOURCE_DATA_MAP.csv`：raw/processed/figure source/model output 到 C/R/S/F-id、实际文件和哈希的映射。由
+  [`verify_evidence_map.py`](../templates/verify_evidence_map.py) 核对：登记的路径必须存在、哈希必须等于
+  文件当前内容、`result_ids` 必须在 `RESULTS.jsonl`/`RESULTS.md` 里找得到。登记而不核对的哈希会随重跑
+  静默过期，与把旧代码印进附录、把旧结果打进支撑包是同一类失效。
 - `NATURE_QA.csv`：内置 Nature 证据、图表、写作/Office 和反馈检查的实际观察与状态。
 - `REVIEW_PASS_ITEMS.csv`：具体通过项，必须有文件、位置、观测值、期望值和证据。
 - `FREEZE_CHANGE_LOG.md`：已冻结结果的替代关系、原因、旧/新证据和人确认。
