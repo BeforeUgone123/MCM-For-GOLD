@@ -66,3 +66,38 @@
 5. 与未晋升的 `v2.5-guided-decisions-candidate` 人工合并（两者同改 `stage-review-scoring.md` 与 `mcm-gold-t7-write/SKILL.md`）。
 
 若机检诱发注水、误拦正常简洁论文、摘要/评价定位在真实路线频繁失败，或门槛数值被交叉核验证伪，则回滚本候选，不晋升。
+
+
+---
+
+## 结构证据链补强（2026-08-11T15:22:36+08:00，HEAD `68951cc`）
+
+把 10 个 SKILL.md 要求的 76 个产物逐一对照实际存在的检查器，**44 个零机检**。
+同一个死法反复出现：要求写在文档里、没有机检、于是从未被执行。本轮补的是这一类，
+不是新增流程要求。
+
+| 新增 | 管什么 |
+|---|---|
+| `verify_prose_revision.py` | AI 润色前后：数字、范围号 `--`、判断强弱、句长节奏 |
+| `verify_evidence_map.py` | `SOURCE_DATA_MAP.csv` 登记的哈希 vs 文件当前内容 |
+| `seed_evidence_map.py` | 从真实文件种出映射骨架（机器能定的填实，需判断的留空 `PENDING`） |
+| `verify_ledgers.py` | 7 个 CSV 台账：表头、空表、模板占位符、时间戳真伪、路径存在性 |
+| `verify_search_discipline.py` | 禁入域名在产物里的痕迹（取消资格级红线） |
+| `verify_output_layout.py` 扩展 | `FOREIGN_TOPIC_CONTENT`：正文混入兄弟工作区那道题的内容 |
+| `init_result_workspace.py` 扩展 | 建工作区时落 `SEARCH_LOG.md` 骨架（规则要求它先于首次检索存在） |
+| `tests/test_checkers.py` | 每个 templates/*.py 必须能 import、`--help` exit 0；四个新检查器的失效路径 |
+
+两条设计约束：**契约从文档读**（台账表头解析 `workspace-templates.md`、域名清单解析
+`rules-2026.md`，不在检查器里抄第二份）；**解析不到就退出 2**，空清单会让每条比对都通过。
+
+`adversarial-gates.md` 新增反幻觉铁律第 8 条：**检查报警的正确响应不总是「让它变绿」**。
+机器能扫出的（路径、哈希、时间戳）可以种，需要判断的（claim 关联、观测结论、容差）
+留空并保持 `PENDING`；补不上的如实登记，让 Gate 停在 `NEEDS_HUMAN`。
+
+四个演练工作区已按新检查回扫并处理，终态：布局 / 证据映射 / 检索纪律 / 台账
+四项全部通过（2025A 另清出 575 MB `.venv` 与 1084 个 `__pycache__`，
+`Data-Scripts` 由 21766 文件降到 28 个）。`CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`、
+`NATURE_QA.csv`、`REVIEW_PASS_ITEMS.csv` 在三题保留为**未修缺口**，已写入各自 STATE.md——
+其中 `REVIEW_PASS_ITEMS.csv` 按对抗门禁第 33 条**不可事后补**。
+
+本节不改变晋级 Gate：新增的是结构证据链检查，不触碰 rubric、门槛数值与写作指令。
