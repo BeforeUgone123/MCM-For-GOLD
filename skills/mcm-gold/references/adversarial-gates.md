@@ -9,7 +9,10 @@
 - **审查报告须附否决清单**（哪些疑点被检查过、为何判定不成立），防止下一轮重复上报同样疑点。
 - `paranoid` 档：跑两轮独立红队，第二轮不看第一轮结论。
 - `paper-ready` 不是“文字看起来完整”：必须满足 `references/evidence-contract.md` 的 claim 链，并由适用的 H-001~H-004 人类签署；演练代理最高标 `rehearsal_confirmed`。
-- Gate 的每个 PASS 写入 `REVIEW_PASS_ITEMS.csv`，至少包含文件位置、实际观测、期望/容差、命令或 R-id、检查者和时间。只有“已检查”字样视为未通过。
+- Gate 的每个 PASS 都要留下可复核的证据，但**分两个去处，不重复登记**：
+  - **本题特有的验收项**（约束残差、守恒、量纲、收敛、容差比对）写 `REVIEW_PASS_ITEMS.csv`，至少含文件位置、实际观测、期望/容差、命令或 R-id、检查者和时间，且**必须在检查跑完的当时就写**——`expected_or_tolerance` 是判据，本文件第 33 条要求判据在运行前落盘，事后回填等于看完结果再定阈值。
+  - **通用契约检查器**（`verify_paper_contract` / `verify_output_layout` / `verify_ledgers` / `verify_evidence_map` / `verify_search_discipline` / `verify_clean_reproduction` / `verify_stage_review`）的结果由它们自己写进 `Review-Results/*.json`，**不要手抄进那张表**：抄一份就有两处会不一致，而不一致的汇总比没有汇总更误导。
+  两类都一样：只有“已检查”字样视为未通过。（本条原文是「每个 PASS 都写入 `REVIEW_PASS_ITEMS.csv`」，与后来定下的分工规则冲突，见 T6 SKILL.md、`workspace-templates.md` 与 `evidence-contract.md` 三处；旧通则未随新分工修订，实测表现为双写不一致或因犹豫而两边都没写。）
 
 ---
 
@@ -108,13 +111,17 @@ python3 -m venv "$venv_dir"
 
 ```
 MCM-Result/Paper-Outputs/deliverables/
+├─ _support_src/                # 【人装配】支撑材料源目录，T8 步骤 1b 建；不提交，也不是交付层
+│                               # README、requirements.txt、run_all.py、src/、data/、figures/、intermediate/、AI 工具使用详情.pdf（若使用）
 ├─ submission/                  # 电子提交只上传以下两个文件
 │  ├─ paper.pdf                 # 首页=摘要页，≤20MB
 │  └─ support.zip               # staging/support 的内容，≤20MB
-├─ staging/support/             # README、requirements、run_all.py、src/、data/、figures/、intermediate/、AI 工具使用详情.pdf（若使用）
+├─ staging/support/             # 【脚本生成】_support_src/ 的干净副本，由 build_deliverables.py --support-src 复制
 ├─ print/paper_print.pdf        # 含承诺书+编号页的纸质版
 └─ archive/                     # STATE/DECISIONS/RESULTS/SOURCES/...，不提交
 ```
+
+**下面四层由 `build_deliverables.py` 生成，最上面那层必须有人先装配。**结构写在文档里却没有归属步骤时不会自己出现：2025A 演练四个目录一个都没建，终检清单路径全部落空；`_support_src/` 同理，装配工序补在 T8 步骤 1b。`staging/support/` 每次运行都会被重建，**不要往里面直接放东西**——放了下次就没了。
 
 ---
 
@@ -128,7 +135,7 @@ MCM-Result/Paper-Outputs/deliverables/
 - [ ] 六类检验均有 R-id 证据；不适用项有 D-log 的 `N/A + 原因 + 替代检查`
 - [ ] 创新点 ≥ `innovation_quota` 且在摘要点名
 - [ ] `CLAIM_LEDGER.csv` 中进入摘要/正文的条目都有 R/S/F-id，状态达到正式 `confirmed` 或演练 `rehearsal_confirmed`
-- [ ] `PAPER_COVERAGE_LEDGER.csv` 每问恰有 interface/definition/algorithm/result/validation/boundary 六行，无 `WEAK/MISSING`；非 N/A 锚点均能在实际 `main.pdf` 回读，validation 关联主要 K-id 与 R/P/V-id
+- [ ] `PAPER_COVERAGE_LEDGER.csv` 每问恰有 interface/definition/algorithm/result/validation/boundary 六行，无 `WEAK/MISSING`；非 N/A 锚点均能在实际 `main.pdf` 回读，validation 关联主要 K-id 与 R/P-id
 - [ ] `T7_RUBRIC_REVIEW.csv` 使用固定七维、总分达到 `CONFIG.target.rubric_threshold` 且无单项低于及格线；未用自创四维表绕过
 - [ ] H-001 至 H-004 的适用项已由人确认；演练若为 `PROXY_REHEARSAL`，交付状态明确写“非正式提交”
 
@@ -179,7 +186,7 @@ pdffonts "$paper"                                                # emb 列逐行
 pdftotext -layout "$paper" - | awk 'BEGIN{RS="\f"} /附录/{print "附录起始PDF页=" NR; exit}' # 应 ≤32
 for p in $(seq 1 "$(pdfinfo "$paper" | awk '/^Pages:/{print $2}')"); do printf '%s: ' "$p"; pdftotext -f "$p" -l "$p" -layout "$paper" - | tail -n 4 | tr '\n' ' '; echo; done # 核页码连续
 unzip -t "$support"                                               # 压缩包完整性
-python3 <skills-root>/mcm-gold/templates/verify_paper_contract.py --coverage MCM-Result/Review-Results/PAPER_COVERAGE_LEDGER.csv --rubric MCM-Result/Review-Results/T7_RUBRIC_REVIEW.csv --reader MCM-Result/Paper-Outputs/paper/main.pdf --submission MCM-Result/Paper-Outputs/paper/<problem>_submission.pdf --support-root MCM-Result/Paper-Outputs/deliverables/staging/support --source-root MCM-Result/Paper-Outputs/deliverables/staging/support/src --results-ledger MCM-Result/Intermediate-Outputs/RESULTS.md --citation-log MCM-Result/Intermediate-Outputs/logs/T7_CITATION_CROSSREF.jsonl --output MCM-Result/Review-Results/T8_PAPER_CONTRACT.json  # 参考文献反编造校验默认开启（库自锚到 skills-root），--citation-log 供库外条目出示实访记录
+python3 <skills-root>/mcm-gold/templates/verify_paper_contract.py --coverage MCM-Result/Review-Results/PAPER_COVERAGE_LEDGER.csv --rubric MCM-Result/Review-Results/T7_RUBRIC_REVIEW.csv --reader MCM-Result/Paper-Outputs/paper/main.pdf --submission MCM-Result/Paper-Outputs/paper/<problem>_submission.pdf --support-root MCM-Result/Paper-Outputs/deliverables/staging/support --source-root MCM-Result/Paper-Outputs/deliverables/staging/support/src --results-ledger MCM-Result/Intermediate-Outputs/RESULTS.md --citation-log MCM-Result/Reference-Papers/SOURCES.md --output MCM-Result/Review-Results/T8_PAPER_CONTRACT.json  # 参考文献反编造校验默认开启（库自锚到 skills-root），--citation-log 传实访记录本身（SOURCES.md），供库外条目出示 DOI 被实际访问过的证据
 grep -rInI -iE "学校|大学|学院|姓名|指导教师|队号|/Users/|/home/" MCM-Result/Paper-Outputs/deliverables/staging/support/
 exiftool "$paper" | grep -iE "author|creator|producer|title"
 exiftool -r MCM-Result/Paper-Outputs/deliverables/staging/support/figures/ | grep -iE "author|comment|software"

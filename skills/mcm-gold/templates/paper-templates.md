@@ -7,7 +7,7 @@
 ```latex
 \begin{center}\Large\textbf{<论文题目>}\end{center}
 \begin{center}\textbf{摘\quad 要}\end{center}\quad <每问：难点→模型/算法→数值+单位→R-id验证；写清递进关系>
-\textbf{创新点：}<没有它会怎样+对照证据>\quad \textbf{检验：}<范围+结论+R-id>\quad \textbf{关键词：}<4--6个>
+\textbf{创新点：}<没有它会怎样+对照证据>\quad \textbf{检验：}<范围+结论+R-id>\quad \textbf{关键词：}<4--5个，与 rubric-and-writing.md 的 target 及 verify_paper_contract 的 TARGET_KEYWORDS 同口径>
 ```
 
 **排版要点**：三线表用 `booktabs`（`\toprule/\midrule/\bottomrule`）；中文用 `ctex`；图表编号与正文引用一致；页码 `\pagestyle{plain}` 页脚居中。
@@ -107,7 +107,9 @@ MCM-Result/Paper-Outputs/paper/<problem>_submission.tex # input body.tex，再�
 \lstinputlisting[title={src/p1.py}]{../support/src/p1.py}
 ```
 
-最终 PDF 必须执行 `templates/verify_paper_contract.py`：它回读阅读版锚点、七维 rubric、两版共享正文、实际文件列表和代码内容。阅读版页数明显偏短只触发 `DEPTH_REVIEW_REQUIRED` 人工复核，不能成为单独判失败或填充文字/代码的理由；缺提交版、文件列表或完整代码则为契约硬失败。
+最终 PDF 必须执行 `templates/verify_paper_contract.py`：它回读阅读版锚点、七维 rubric、两版共享正文、实际文件列表和代码内容。缺提交版、文件列表或完整代码为契约硬失败。
+
+**页数偏短的现行处理已不止「人工复核」**：阅读版触线（<14 页或 <10000 字）会启动深度形态核查——每问建模求解字数与编号公式、全文三线表、参考文献、摘要与模型评价密度。形态项缺一即写入 `expansion_items` 并让契约返回 `NEEDS_EXPANSION` 阻断交付，必须逐条实质扩写后重跑；形态全过则只记 `DEPTH_FORM_CHECKS_PASSED` 豁免留痕（同时仍出 `DEPTH_REVIEW_REQUIRED` warning，H-004 照旧要人工读 `main.pdf`）。**页数本身从不单独判失败**，所以触线的正确响应是补实质内容，不是填充文字或粘代码凑页数。
 
 无程序时写明「本论文没有用到程序」；无支撑材料时写明「本论文没有支撑材料」。
 

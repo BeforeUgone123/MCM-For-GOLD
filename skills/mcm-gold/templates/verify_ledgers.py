@@ -11,6 +11,8 @@
 DRAFT/BLOCKED」，而实际工作区里根本没有这个文件。
 
 检查的都是可证伪的事实：
+  - 台账是否落在契约声明的归属目录，别的目录里有没有同名副本（`LEDGER_STRAY_COPY`）。
+    两份并存时只有一份被机检读到，对另一份的更新永久失效，而报告照样全绿；
   - 表头是否与契约一致（少列会让下游读到 None，多列往往是手工改表的痕迹）；
   - 是否只有表头没有数据行；
   - 数据行里是否残留 `<实际观察>` 这类模板占位符——从模板复制时连样例行一起带进来、
@@ -42,11 +44,16 @@ from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent / "workspace-templates.md"
 
-# 台账可能落在这两个目录之一，取决于它是过程记录还是 review 结果
+# 台账落在这两个目录之一，取决于它是过程记录还是 review 结果。
+# 具体哪一个由 workspace-templates.md 各小节的「归属目录」行声明，本文件不再自己判断——
+# 早先这里是「两个目录先到先得」，而文档对 FIGURE_EVIDENCE/NATURE_QA 的归属自相矛盾，
+# 于是不同会话在两处各建一份，检查器只读到先命中的那份，另一份的更新被静默忽略。
 SEARCH_DIRS = ("Intermediate-Outputs", "Review-Results")
 
 SECTION_RE = re.compile(r"^##\s+([A-Za-z0-9_]+\.csv)\s*$", re.M)
 FENCE_RE = re.compile(r"```csv\n(.*?)\n```", re.S)
+# 归属目录：`MCM-Result/Review-Results/`
+HOME_DIR_RE = re.compile(r"^归属目录：`(?:MCM-Result/)?([A-Za-z-]+)/?`", re.M)
 # `<` 后紧跟数字或 `=` 的是数学比较，不是模板占位符。实测误报：某台账写
 # 「正文汉字 10674<15000、摘要 879>850」，`<15000、摘要 879>` 被整段当成了占位符。
 PLACEHOLDER_RE = re.compile(r"<(?![\d=])[^<>\n]{1,40}>")
@@ -79,12 +86,39 @@ def parse_contracts(path: Path) -> dict[str, list[str]]:
     return contracts
 
 
-def locate(workspace: Path, name: str) -> Path | None:
-    for folder in SEARCH_DIRS:
-        candidate = workspace / folder / name
-        if candidate.is_file():
-            return candidate
-    return None
+def parse_home_dirs(path: Path) -> dict[str, str]:
+    """从 workspace-templates.md 提取 {台账文件名: 归属目录}。
+
+    与表头同源：契约文档改了归属，检查自动跟上；这里不留第二份判断。
+    """
+    text = path.read_text(encoding="utf-8")
+    homes: dict[str, str] = {}
+    matches = list(SECTION_RE.finditer(text))
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        declared = HOME_DIR_RE.search(text, match.end(), end)
+        if declared and declared.group(1) in SEARCH_DIRS:
+            homes[match.group(1)] = declared.group(1)
+    return homes
+
+
+def locate(workspace: Path, name: str,
+           home: str | None) -> tuple[Path | None, list[Path]]:
+    """返回 (采用的文件, 主目录之外的同名副本)。
+
+    契约声明了归属目录时**只认那一个目录**，别处的同名文件作为 stray 单独报出——
+    两份台账并存时，静默采用其中一份等于让另一份的更新永久失效。
+    """
+    hits = [workspace / folder / name for folder in SEARCH_DIRS]
+    hits = [path for path in hits if path.is_file()]
+    if not hits:
+        return None, []
+    if home is None:
+        return hits[0], hits[1:]
+    primary = workspace / home / name
+    chosen = primary if primary.is_file() else hits[0]
+    strays = [path for path in hits if path != chosen]
+    return chosen, strays
 
 
 def valid_timestamp(value: str) -> bool:
@@ -186,6 +220,7 @@ def main() -> int:
     if not contracts:
         print(f"FAIL_CONTRACT 没能从 {args.templates} 解析出任何台账契约")
         return 2
+    homes = parse_home_dirs(args.templates)
 
     required = set(args.require)
     unknown = required - set(contracts)
@@ -198,18 +233,30 @@ def main() -> int:
     seen: dict[str, dict] = {}
 
     for name, header in sorted(contracts.items()):
-        path = locate(workspace, name)
+        home = homes.get(name)
+        path, strays = locate(workspace, name, home)
         if path is None:
-            line = (f"LEDGER_MISSING {name} 不存在"
-                    f"（找过 {'、'.join(SEARCH_DIRS)}）")
+            expected = f"{home}/" if home else "、".join(SEARCH_DIRS)
+            line = f"LEDGER_MISSING {name} 不存在（归属目录 {expected}）"
             (errors if name in required else warnings).append(line)
-            seen[name] = {"present": False}
+            seen[name] = {"present": False, "home": home}
             continue
+        if home and path.parent.name != home:
+            warnings.append(
+                f"LEDGER_WRONG_LOCATION {name} 不在契约归属目录 {home}/，"
+                f"实际在 {path.parent.name}/——本次照它检查，但请挪回归属目录，"
+                "否则下一个会话会在归属目录另建一份")
+        for stray in strays:
+            warnings.append(
+                f"LEDGER_STRAY_COPY {name} 在 {stray.parent.name}/ 还有一份同名副本，"
+                f"本次只检查 {path.parent.name}/ 的那份——两份并存时，"
+                "对副本的更新会被机检静默忽略，请合并后删除多余副本")
         file_errors, file_warnings, count = check_one(name, header, path, workspace)
         errors.extend(file_errors)
         warnings.extend(file_warnings)
-        seen[name] = {"present": True, "rows": count,
-                      "path": path.relative_to(workspace).as_posix()}
+        seen[name] = {"present": True, "rows": count, "home": home,
+                      "path": path.relative_to(workspace).as_posix(),
+                      "stray_copies": [s.relative_to(workspace).as_posix() for s in strays]}
 
     status = "FAIL_CONTRACT" if errors else ("NEEDS_HUMAN" if warnings else "PASS")
     report = {"status": status, "contracts": len(contracts),

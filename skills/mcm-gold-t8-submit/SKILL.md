@@ -5,6 +5,8 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 
 # T8 终检与提交
 
+**安装依赖**：本 skill 与 `mcm-gold` **必须同级安装**（`skills/mcm-gold/` 与 `skills/mcm-gold-t0-prepare/` … `skills/mcm-gold-t8-submit/` 并列在同一目录）。下文全部 `../mcm-gold/…` 的必读文档、模板脚本与 Gate 引用都按这个布局解析：只装本阶段、或改动目录层级时，这些链接会一次性全断，必读门禁与机检随之全部失效。缺同级 `mcm-gold` 时先补齐再执行，不要绕过引用继续跑。
+
 先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[赛事规则](../mcm-gold/references/rules-2026.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)、[内置 Nature 写作与 Office 规范](../mcm-gold/references/nature-writing-office.md)和[人机责任边界](../mcm-gold/references/human-ai-charter.md)。最后 8 小时不引入新模型；最后 4 小时冻结内容，只修复交付、合规和会导致误读的问题。
 
 ## 必需输入
@@ -16,6 +18,16 @@ description: 数学建模竞赛 T8 终检与提交专家。用于冻结内容后
 ## 执行
 
 1. 冻结候选文件，生成实际目录清单和 SHA-256；不手写猜测包内文件。提交白名单只能指向显式 `*_submission.pdf`，禁止把 `main.pdf` 重命名后当提交版。
+1b. **装配支撑材料源目录 `_support_src/`**——它是下一步的输入，位置固定为 `MCM-Result/Paper-Outputs/deliverables/_support_src/`。下划线前缀表示它是**源目录、不是交付层**：`build_deliverables.py --support-src` 把它整份复制成 `staging/support/`，所以它的内部结构就是评委解压后看到的结构（[对抗门禁](../mcm-gold/references/adversarial-gates.md)第五节）。逐项放入：
+    - `README.md`：复现说明，写明依赖安装、入口命令与预期输出——步骤 6 的清环境复现按它的**原文**执行，写错即等于评委跑不通；
+    - `requirements.txt`：锁定版本的依赖清单；
+    - `run_all.py`：从 `Data-Scripts/` 复制的复现入口；
+    - `src/`：论文附录逐一列出的全部源程序，从 `Data-Scripts/` 复制，一份不缺（缺源程序是取消资格红线第一条）；
+    - `data/`：自主查阅使用的数据资料，**赛题提供的原始数据除外**（格式规范第十三条）；
+    - `figures/`、`intermediate/`：较大篇幅的中间结果图表；
+    - `AI 工具使用详情.pdf`（使用过 AI 时，文件名须完全一致）。
+    **一律复制、不移动、不就地编辑**：权威副本留在 `Data-Scripts/` 与 `Paper-Outputs/results/`，步骤 2 的 `--code-src`/`--artifact-src` 正是逐文件比对两边哈希，源目录被当成工作副本改动就会把 `CODE_DRIFT` 变成常态噪音。复制时不要带 `.venv`、`__pycache__`、LaTeX 中间件（`build_deliverables.py` 会过滤常见噪声，但过滤不是许可）。
+    **这一步此前在 T0–T7 全部执行步骤里没有主人**，于是每题都走到步骤 2 才发现目录不存在，只能在截止前的高压时段临时手工凑——与 2025A「漏交源文件」是同一个高发环节，检查端早就修了，装配端一直空着。
 2. **先建交付物分层再终检**：运行 [`../mcm-gold/templates/build_deliverables.py`](../mcm-gold/templates/build_deliverables.py) 生成 `deliverables/{submission,staging/support,print,archive}`，保存清单到 `MCM-Result/Review-Results/T8_DELIVERABLES.json`。**不得跳过这一步直接终检**——契约的 `--support-root`/`--source-root` 指向 staging 路径，路径不存在时逐文件列表核对与源码嵌入核对**整组静默跳过**，报告只剩一条 `MISSING_SUPPORT_ROOT`，极易被读成「支撑包已通过终检」。2025A 演练正是如此漏掉了一个论文完全没提到的源文件和四份未嵌入附录的代码。
 
 3. 对冻结后的阅读版、提交版、覆盖账本、七维 rubric 和实际支撑/源程序目录重新运行 [`../mcm-gold/templates/verify_paper_contract.py`](../mcm-gold/templates/verify_paper_contract.py)，保存到 `MCM-Result/Review-Results/T8_PAPER_CONTRACT.json`。缺提交版、共享正文漂移、文件列表不实、代码未嵌入、覆盖缺项或 rubric 未达目标均阻断打包；T8 不得覆盖 T7 状态。

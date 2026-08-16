@@ -2,6 +2,8 @@
 
 遵守 `references/output-layout.md`：状态与证据台账默认在 `CONFIG.process.state_dir`（即 `MCM-Result/Intermediate-Outputs/`），`SOURCES.md` 在 `Reference-Papers/`，AI review 矩阵、报告、契约和 QA 在 `Review-Results/`。示例只定义最小字段，按记录重复行。
 
+**每张 CSV 台账的归属目录在它自己的小节里逐条标注，那一行是唯一真相**：`verify_ledgers.py` 直接解析这些标注定主目录，另一个目录出现同名文件时报 `LEDGER_STRAY_COPY`。此前检查器在两个目录里先到先得，而总控与阶段文本对 `FIGURE_EVIDENCE.csv`、`NATURE_QA.csv` 各说各话——不同会话在两处各建一份，机检只读到其中一份，另一份的更新被静默忽略，台账分叉且不可见。
+
 ## STATE.md
 
 ```markdown
@@ -83,12 +85,16 @@
 
 ## CLAIM_LEDGER.csv
 
+归属目录：`MCM-Result/Intermediate-Outputs/`
+
 ```csv
 claim_id,location,claim_text,value,unit,result_ids,source_ids,figure_ids,status,human_signoff,updated_at
 C-001,摘要,<可核查结论>,<数值>,<单位>,R-001,S-001,F-001,candidate,H-004,2026-09-12T10:00:00+08:00
 ```
 
 ## FIGURE_EVIDENCE.csv
+
+归属目录：`MCM-Result/Review-Results/`
 
 列与 `references/nature-figures.md` 的 figure contract **13 字段一一对应**，不得删列。该 contract 是**事前**约束：MUST 在写绘图代码前先填 `core_conclusion / role / archetype / backend / final_size / panel_map / evidence_hierarchy / statistics / image_integrity / reviewer_risk / caption_boundary`，画完后再补 `source_table / script / run_ids / visual_check`。画完再倒填全表等于把契约降级成事后描述，评审时无法区分「按结论选了图」与「按图编了结论」。
 
@@ -101,7 +107,9 @@ F-001,MCM-Result/Data-Figures/example.pdf,C-001,<一句含动词、可证伪的�
 
 ## PAPER_COVERAGE_LEDGER.csv
 
-每问固定六行；这是论文论证的验收账本，不与通用 `REVIEW_PASS_ITEMS.csv` 混用。`paper_anchor` 必须是阅读版 PDF 经 `pdftotext` 后可检索的真实标题、表题或句首。`validation` 关联主要 K-id 和 R/P/V-id；`result` 关联可复核 R/P/V-id。`interface/definition/algorithm/result` 不允许 `N_A`；其他 `N_A` 必须关联 D-id 和理由。
+归属目录：`MCM-Result/Review-Results/`
+
+每问固定六行；这是论文论证的验收账本，不与通用 `REVIEW_PASS_ITEMS.csv` 混用。`paper_anchor` 必须是阅读版 PDF 经 `pdftotext` 后可检索的真实标题、表题或句首。`validation` 关联主要 K-id 和 R/P-id；`result` 关联可复核 R/P-id——**检验证据只有这两个载体**：`R-` 是 `RESULTS.md` 里的运行记录，`P-` 是 `REVIEW_PASS_ITEMS.csv` 里的本题验收项。此前三处文档要求回填的 `V-id` 是幽灵编号，没有任何台账定义或签发它，填表时只能现场发明一个无处登记的号，故整体改回 R/P；`verify_paper_contract.py` 的正则仍接受历史工作区写过的 `V-`，但新表不再产生。`interface/definition/algorithm/result` 不允许 `N_A`；其他 `N_A` 必须关联 D-id 和理由。
 
 ```csv
 question_id,component,required_content,claim_or_risk_ids,paper_anchor,evidence_ids,observed,status,human_status
@@ -116,6 +124,8 @@ Q1,boundary,<代表什么/不代表什么/依赖与复核触发>,C-002;K-001,4.6
 `status` 仅取 `PASS/WEAK/MISSING/N_A`；`human_status` 仅取 `PENDING/HUMAN_ACCEPTED/PROXY_REHEARSAL`。机器结构通过不能替代 H-004；无人演练全部写 `PROXY_REHEARSAL`。
 
 ## T7_RUBRIC_REVIEW.csv
+
+归属目录：`MCM-Result/Review-Results/`
 
 必须逐行使用 `references/rubric-and-writing.md` 的七个维度、满分和及格线，不得临时发明四维或等权评分表。
 
@@ -133,6 +143,8 @@ dimension,score,max_score,pass_score,evidence,observed,status
 总分低于 `CONFIG.target.rubric_threshold` 或任一维低于及格线时，论文契约只能为 `NEEDS_EXPANSION`，T7 阶段不得写 `PASS/PASS_WITH_LIMITATIONS`。
 
 ## REVIEW_PASS_ITEMS.csv
+
+归属目录：`MCM-Result/Review-Results/`
 
 “已检查”不是证据；每行必须写实际观测和期望/容差。
 
@@ -173,6 +185,8 @@ P-001,T4,销量约束残差,MCM-Result/Intermediate-Outputs/logs/solver.log,0,<=
 
 ## NATURE_QA.csv
 
+归属目录：`MCM-Result/Review-Results/`
+
 记录内置 Nature 模块的实际检查。`ADOPTED` 只表示产物通过模块验收，不代表阶段 Gate 自动通过。
 
 ```csv
@@ -181,6 +195,8 @@ NQ-001,T4,figure_contract,MCM-Result/Data-Figures/F-001.pdf,"C-001;R-001;F-001",
 ```
 
 ## SOURCE_DATA_MAP.csv
+
+归属目录：`MCM-Result/Intermediate-Outputs/`
 
 把 Nature 的数据可用性原则适配为竞赛支撑包证据映射；没有真实仓库或标识符时留空，不得虚构。
 

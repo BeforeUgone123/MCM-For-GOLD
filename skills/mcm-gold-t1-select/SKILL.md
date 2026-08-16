@@ -5,6 +5,8 @@ description: 数学建模竞赛 T1 读题与选题专家。用于逐句拆解题
 
 # T1 读题与选题
 
+**安装依赖**：本 skill 与 `mcm-gold` **必须同级安装**（`skills/mcm-gold/` 与 `skills/mcm-gold-t0-prepare/` … `skills/mcm-gold-t8-submit/` 并列在同一目录）。下文全部 `../mcm-gold/…` 的必读文档、模板脚本与 Gate 引用都按这个布局解析：只装本阶段、或改动目录层级时，这些链接会一次性全断，必读门禁与机检随之全部失效。缺同级 `mcm-gold` 时先补齐再执行，不要绕过引用继续跑。
+
 先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[人机责任边界](../mcm-gold/references/human-ai-charter.md)和[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)。本阶段优化的是“能否完整、可验证地答题”，不是方法名的新颖程度。
 
 ## 必需输入

@@ -5,6 +5,8 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 
 # T0 赛前准备
 
+**安装依赖**：本 skill 与 `mcm-gold` **必须同级安装**（`skills/mcm-gold/` 与 `skills/mcm-gold-t0-prepare/` … `skills/mcm-gold-t8-submit/` 并列在同一目录）。下文全部 `../mcm-gold/…` 的必读文档、模板脚本与 Gate 引用都按这个布局解析：只装本阶段、或改动目录层级时，这些链接会一次性全断，必读门禁与机检随之全部失效。缺同级 `mcm-gold` 时先补齐再执行，不要绕过引用继续跑。
+
 先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[赛事规则](../mcm-gold/references/rules-2026.md)、[训练协议](../mcm-gold/references/training-protocol.md)和[内置 Nature 总则](../mcm-gold/references/nature-integrated-playbook.md)。本阶段只建立可靠起点，不提前替正式赛题选择路线。
 
 ## 必需输入
@@ -27,7 +29,16 @@ description: 数学建模竞赛 T0 赛前准备专家。用于核验最新赛事
 9. 在 30 分钟时间盒内完成“读数据 -> 最小模型 -> 结果图 -> PDF -> 支撑包重跑”的烟雾测试。烟雾测试 MUST 在**全新目录 + 全新虚拟环境**下按支撑包 README 原文执行，验证的是"评委照说明能跑通"，不是"我们自己的机器能跑通"。
 10. 固化内置 Nature 工具链：确认 Python/R 绘图运行时、SVG/PDF 可编辑文本、字体回退、最终尺寸预览和矢量回读；`paper_format=word` 时同时实测 `officecli validate/view`。
 11. 不在 T0 替用户选择绘图后端。已有明确单语言工作流时记录；否则标 `UNCONFIRMED`，留到第一张正文图前只问“Python 还是 R？”。
-12. **预置文献库全文**。[可引用书目](../mcm-gold/references/literature-library.md)的「本地全文清单」逐条落到 `MCM-Result/Reference-Papers/papers/`——竞赛期间禁入域名收紧、网络不可靠，赛前不备赛中就没有。取文件只走 arXiv、出版社与学会开放页、机构知识库、大学/研究所官方域名的作者自存档；**先用 Crossref/arXiv/Unpaywall 核验书目真实存在，再找全文**；每篇下载后用 `pdftotext` 首页逐字核对标题/作者/年份/卷期页，文本层缺失的用 `pdftoppm` 渲染读图确认。取不到合法开放全文的**标 `~~文件名~~` 并写明原因，不下载非授权转载**。落盘后生成 `MANIFEST.sha256` 与 `ACQUISITION_LOG.md`（逐篇记来源 URL、版本性质、取证过程），再跑验收：
+12. **预置文献库全文**。**先查同机有没有既有工作区已经备好的库**——兄弟工作区（`MCM-Result-2025B/` 这类）的 `Reference-Papers/papers/` 若带 `MANIFEST.sha256`，整目录复制再核哈希只要几分钟，而逐篇联网取证要数小时；网络受限时它还是唯一可行路径：
+
+    ```bash
+    cp -R <既有工作区>/Reference-Papers/papers MCM-Result/Reference-Papers/
+    cd MCM-Result/Reference-Papers/papers && shasum -a 256 -c MANIFEST.sha256 | grep -v ': OK$'   # 无输出 = 逐篇字节一致
+    ```
+
+    任何一行不是 `OK` 就**不要将就**：那一篇已损坏或被改过，按下面的流程单独重取。`ACQUISITION_LOG.md` 一起复制——它记的是取证过程，不随工作区变化。复制完仍要跑本条末尾的 `verify_reference_papers.py`：它比对本工作区的书目表 `✔`、清单声明、磁盘实际与哈希四者，**复制不豁免验收**（复制来的库也可能缺本届书目表新增的条目）。
+
+    没有可复制的既有库时，逐篇获取：[可引用书目](../mcm-gold/references/literature-library.md)的「本地全文清单」逐条落到 `MCM-Result/Reference-Papers/papers/`——竞赛期间禁入域名收紧、网络不可靠，赛前不备赛中就没有。取文件只走 arXiv、出版社与学会开放页、机构知识库、大学/研究所官方域名的作者自存档；**先用 Crossref/arXiv/Unpaywall 核验书目真实存在，再找全文**；每篇下载后用 `pdftotext` 首页逐字核对标题/作者/年份/卷期页，文本层缺失的用 `pdftoppm` 渲染读图确认。取不到合法开放全文的**标 `~~文件名~~` 并写明原因，不下载非授权转载**。落盘后生成 `MANIFEST.sha256` 与 `ACQUISITION_LOG.md`（逐篇记来源 URL、版本性质、取证过程），再跑验收：
 
     ```bash
     python3 <skills-root>/mcm-gold/templates/verify_reference_papers.py \

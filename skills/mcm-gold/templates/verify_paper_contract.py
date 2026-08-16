@@ -71,6 +71,9 @@ CODE_SUFFIXES = {
 ID_SUFFIX = r"[A-Z0-9]+(?:-[A-Z0-9]+)*"
 ID_RE = re.compile(rf"\b[CK]-{ID_SUFFIX}\b", re.IGNORECASE)
 RISK_ID_RE = re.compile(rf"\bK-{ID_SUFFIX}\b", re.IGNORECASE)
+# 检验证据的两个载体：R-（RESULTS.md 的运行记录）与 P-（REVIEW_PASS_ITEMS.csv 的验收项）。
+# V- 保留只为兼容历史工作区：它曾被三处文档要求回填，却没有任何台账签发，
+# 契约文档已改回 R/P，这里继续放行旧数据但不再宣传。
 VALIDATION_ID_RE = re.compile(rf"\b(?:R|P|V)-{ID_SUFFIX}\b", re.IGNORECASE)
 DECISION_ID_RE = re.compile(rf"\bD-{ID_SUFFIX}\b", re.IGNORECASE)
 CJK_RE = re.compile(r"[一-鿿]")
@@ -664,9 +667,9 @@ def validate_coverage(
             if not RISK_ID_RE.search(row["claim_or_risk_ids"]):
                 add_issue(errors, "VALIDATION_WITHOUT_RISK", f"{question}/validation 未关联 K-id")
             if status != "N_A" and not VALIDATION_ID_RE.search(row["evidence_ids"]):
-                add_issue(errors, "VALIDATION_WITHOUT_EVIDENCE", f"{question}/validation 未关联 R/P/V-id")
+                add_issue(errors, "VALIDATION_WITHOUT_EVIDENCE", f"{question}/validation 未关联 R/P-id")
         if component == "result" and not VALIDATION_ID_RE.search(row["evidence_ids"]):
-            add_issue(errors, "RESULT_WITHOUT_EVIDENCE", f"{question}/result 未关联 R/P/V-id")
+            add_issue(errors, "RESULT_WITHOUT_EVIDENCE", f"{question}/result 未关联 R/P-id")
         if component in {"definition", "algorithm"} and not ID_RE.search(row["claim_or_risk_ids"]):
             add_issue(errors, "MODEL_ELEMENT_WITHOUT_CLAIM", f"{question}/{component} 未关联 C/K-id")
         human = row["human_status"].upper()

@@ -34,7 +34,7 @@
 
 - 把七维逐项写入 `T7_RUBRIC_REVIEW.csv`，列固定为 `dimension,score,max_score,pass_score,evidence,observed,status`；证据必须指向实际页、图、表或检查记录。
 - 总分低于 `CONFIG.target.rubric_threshold` 或任一维低于及格线，只能路由 `NEEDS_EXPANSION`，不得把“接近目标”写成 `PASS`。
-- 同步维护 `PAPER_COVERAGE_LEDGER.csv`：每问 `interface/definition/algorithm/result/validation/boundary` 六行均可在阅读版 PDF 检索，并映射 C/K/R/P/V/D-id。
+- 同步维护 `PAPER_COVERAGE_LEDGER.csv`：每问 `interface/definition/algorithm/result/validation/boundary` 六行均可在阅读版 PDF 检索，并映射 C/K/R/P/D-id。
 - 页数只产生诊断，但诊断必须闭环：阅读版 <14 页或正文汉字 <10000 触发机检深度形态核查（每问字数/编号公式/结果表/摘要密度/评价篇幅，门槛见 §四篇幅预算表），形态项缺失路由 `NEEDS_EXPANSION`，形态项齐全记录 `DEPTH_FORM_CHECKS_PASSED` 机检豁免（warning）后放行；六项证据完整的简洁小问不得仅因页数被否，缺证据也不得靠扩句、贴代码或重复背景补齐；触发与豁免都必须留痕，不允许信号无后续。
 
 ### 分级判据
@@ -137,7 +137,7 @@
 本文的创新点在于：(1) <创新点1，说清它解决了什么>；(2) <创新点2>。
 模型检验表明<关键结论：参数在依据明确的范围内扰动，最大偏差x%>。
 
-关键词：<4–6 个，含方法名与对象名>
+关键词：<4–5 个，含方法名与对象名>
 ```
 
 **铁律**

@@ -7,7 +7,7 @@
 
 ## 一、CUMCM 2026 关键事实
 
-**证据等级列的含义**：`SNAPSHOT+HASH` = 已在 `sources/official/2026/` 留字节级快照并由 `MANIFEST`/校验脚本锁定哈希，可离线回查；`URL_ONLY` = 仅有官方页面链接，**本仓库没有快照、没有哈希**，随时可能被官方改动；`URL_ONLY(2025)` = 连年份都还是上一届版本。**凡非 `SNAPSHOT+HASH` 的行，T0 与开赛前 24 小时核验时 MUST 逐条重查官网，不得直接沿用本表。**
+**证据等级列的含义**：`SNAPSHOT+HASH` = 已在 **skill 群仓库**的 `sources/official/2026/` 留字节级快照并由 `MANIFEST`/校验脚本锁定哈希（**安装副本不含该目录**，赛用机器上要离线回查须按第七节先把 PDF 复制进工作区）；`URL_ONLY` = 仅有官方页面链接，**本仓库没有快照、没有哈希**，随时可能被官方改动；`URL_ONLY(2025)` = 连年份都还是上一届版本。**凡非 `SNAPSHOT+HASH` 的行，T0 与开赛前 24 小时核验时 MUST 逐条重查官网，不得直接沿用本表。**
 
 | 项目 | 内容 | 证据等级 |
 |---|---|---|
@@ -64,7 +64,7 @@
 
 ## 三、AI 工具使用规定（2026 年试行，2026-09-01 起试行）
 
-原文：`../../../sources/official/2026/cumcm-ai-tool-policy-2026.pdf`，第 1 页，第 1–7 条。
+原文：仓库快照 `sources/official/2026/cumcm-ai-tool-policy-2026.pdf`，第 1 页，第 1–7 条（快照只在 skill 群仓库里，安装副本不带；取用方式见第七节）。
 
 1. 适用范围包括但不限于**大语言模型、生成式 AI、代码辅助工具和 AI 智能体**。
 2. 不要求必须使用 AI。允许竞赛期间使用，但必须公开透明，确保作品的**核心建模与分析由参赛队主导**，并对 AI 参与完成的内容**逐项人工审查与核实**；参赛队对原创性、真实性和准确性负全部责任。
@@ -172,11 +172,19 @@ rules_pack_custom:
 
 | 文件 | 页码/条款 | SHA-256 |
 |---|---|---|
-| `../../../sources/official/2026/cumcm-participation-rules-2026.pdf` | p.1，第 1–10 条 | `46d3837906bfd7049eb04c40cfc8b8436912d7edae98462ba064abfa381a8d3a` |
-| `../../../sources/official/2026/cumcm-ai-tool-policy-2026.pdf` | p.1，第 1–7 条 | `4cf6f30cdd37d6ef2cdb3439c5dba4d9f207c12d6aafe24419e81f3c69acf59a` |
-| `../../../sources/official/2026/cumcm-paper-format-2026.pdf` | pp.1–2，第 1–13 条 | `cece4bb3a900a0435160032b98ea26e03b0f2d7eca58424b0d023e26085aed26` |
+| `sources/official/2026/cumcm-participation-rules-2026.pdf` | p.1，第 1–10 条 | `46d3837906bfd7049eb04c40cfc8b8436912d7edae98462ba064abfa381a8d3a` |
+| `sources/official/2026/cumcm-ai-tool-policy-2026.pdf` | p.1，第 1–7 条 | `4cf6f30cdd37d6ef2cdb3439c5dba4d9f207c12d6aafe24419e81f3c69acf59a` |
+| `sources/official/2026/cumcm-paper-format-2026.pdf` | pp.1–2，第 1–13 条 | `cece4bb3a900a0435160032b98ea26e03b0f2d7eca58424b0d023e26085aed26` |
 
-上表三份是**本文件唯一有字节级快照且被 `tooling/validate_skill_group.py` 锁哈希**的来源，可离线回查、可在争议时逐条比对。以下来源**只有链接、没有快照**，随时可能变动。
+上表三份是本文件唯一有字节级快照的来源，可在争议时逐条比对。
+
+**快照与 skill 不同处，赛用机器上默认不在手边**：路径以 **skill 群仓库根**（`MCM-For-GOLD/`）为基准，PDF 与锁哈希的 `tooling/validate_skill_group.py` 都只存在于仓库；skill 被安装到 `~/.codex/skills/`、`~/.claude/skills/` 一类目录时，安装副本**只带 skill 目录、不带 `sources/` 与 `tooling/`**，照相对路径找必然扑空。因此：
+
+- 需要字节级回查时，回到 skill 群仓库；只有仓库形态下 `python3 tooling/validate_skill_group.py` 才会重算三份 PDF 的哈希并核对上表。
+- **要在赛用机器上离线回查，T0 就得把三份 PDF 复制进工作区** `MCM-Result/Competition-Materials/`（官方原件按[输出目录契约](output-layout.md)本就归这里），复制后用上表哈希核一次 `shasum -a 256`。没做这一步，就不要在断网时宣称「有快照可回查」。
+- 手上既无仓库也无工作区副本时，本表的三行降级为**只有哈希、没有原文**：可以用来验证别处拿到的 PDF 是不是同一份，不能当作原文本身。
+
+以下来源**连快照都没有，只有链接**，随时可能变动。
 
 **CUMCM 官方（`URL_ONLY`，开赛前 24h 必须重访）**
 1. 官网 — https://www.mcm.edu.cn/

@@ -87,8 +87,34 @@ echo "    在论文中如实说明数据来源，并**禁止编造 SOURCES 条�
 echo
 echo "=== 6. 硬件与磁盘 ==="
 echo "  CPU: $(nproc 2>/dev/null || sysctl -n hw.ncpu) 核"
-free -h 2>/dev/null | awk '/Mem/{print "  内存: "$2" 可用 "$7}' || echo "  内存: $(sysctl -n hw.memsize 2>/dev/null | awk '{print $1/1073741824" GB"}')"
+# 管道的退出码取自最后一段命令（awk 恒为 0），所以 `free -h | awk … || echo …` 的 fallback
+# 永远不会执行：在没有 free 的 macOS 上，free 的报错被 2>/dev/null 吞掉、awk 读到空输入、
+# 整行内存信息静默消失且 exit=0——探针自己静默失败，正是它存在要防的那件事。
+# 改成先探命令、再取值。
+if command -v free >/dev/null 2>&1; then
+  free -h | awk '/Mem/{print "  内存: "$2" 可用 "$7}'
+elif mem_bytes=$(sysctl -n hw.memsize 2>/dev/null) && [ -n "$mem_bytes" ]; then
+  awk -v b="$mem_bytes" 'BEGIN{printf "  内存: %.1f GB 总量（sysctl hw.memsize；本平台无 free，可用量未探测）\n", b/1073741824}'
+else
+  echo "  内存: 探测失败（既无 free 也无 sysctl hw.memsize）——记为未知，不得当作「内存充足」"
+fi
 df -h . | tail -1 | awk '{print "  当前盘: "$4" 可用 ("$5" 已用)"}'
 
 echo
+echo "=== 7. 终检工具链（T7/T8 硬依赖；缺了会拖到最后一步才爆）==="
+for c in pdftotext pdfinfo pdffonts pdftoppm unzip exiftool; do
+  p=$(command -v $c 2>/dev/null) && echo "  $c -> $p" || echo "  $c  缺失"
+done
+echo "  ↑ pdftotext/pdfinfo 缺失 → verify_paper_contract.py 的 PDF 回读与页数核验直接降级为「未核验」，"
+echo "    锚点、逐问字数、公式数一并算不出来；T7 的覆盖账本机检等于没跑。"
+echo "  ↑ pdffonts 缺失 → 字体嵌入无法逐行核；按 adversarial-gates.md 第七节记录工具缺失，"
+echo "    改用导出设置保证嵌入，不得直接勾选通过。pdftoppm 用于文献文本层缺失时渲染读图核对。"
+echo "  ↑ unzip 缺失 → 支撑包完整性（unzip -t）与清环境复现的解压步骤都做不了。"
+echo "  ↑ exiftool 缺失 → **图片 EXIF 匿名扫描无降级路径**：PDF 属性还能用 pdfinfo 兜底，"
+echo "    图片 EXIF 没有替代工具。此时 MUST 在 RISKS.md 登记为未修项，并从源头堵——"
+echo "    绘图脚本导出时不写 metadata（matplotlib: savefig(..., metadata={'Creator':None,'Software':None})），"
+echo "    终检该项如实标「工具缺失、未扫描」，不得勾选通过。"
+
+echo
 echo "缺包补齐（按需）: pip3 install --user pandas statsmodels sympy networkx pulp cvxpy openpyxl SALib -i https://pypi.tuna.tsinghua.edu.cn/simple"
+echo "终检工具补齐: macOS 'brew install poppler exiftool'；Debian/Ubuntu 'apt install poppler-utils libimage-exiftool-perl unzip'"

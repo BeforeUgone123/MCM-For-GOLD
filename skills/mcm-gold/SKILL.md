@@ -107,9 +107,11 @@ output:
 - `RESULTS.md`：数值、命令、脚本、种子、时间戳与图表。
 - `Reference-Papers/SOURCES.md`：来源、等级、用途、摘录与获取时间。
 - `AI_USAGE.md`、`RISKS.md`、`HUMAN_SIGNOFFS.md`。
-- `CLAIM_LEDGER.csv`、`FIGURE_EVIDENCE.csv`；`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv`、`Tn_REVIEW_*` 三件套和阶段契约文件写入 `MCM-Result/Review-Results/`。
+- `CLAIM_LEDGER.csv`、`SOURCE_DATA_MAP.csv`：claim 台账与主张到数据文件的映射。
 - `SKILL_USAGE.md`、`FREEZE_CHANGE_LOG.md`。
-- `NATURE_QA.csv`、`SOURCE_DATA_MAP.csv`：内置 Nature 质量检查和主张到数据文件的映射。
+- `FIGURE_EVIDENCE.csv`、`NATURE_QA.csv`、`PAPER_COVERAGE_LEDGER.csv`、`T7_RUBRIC_REVIEW.csv`、`REVIEW_PASS_ITEMS.csv`、`Tn_REVIEW_*` 三件套和阶段契约文件写入 `MCM-Result/Review-Results/`（图证据与 Nature QA 是 review 结果，不是过程记录）。
+
+**每张 CSV 台账的归属目录以 `templates/workspace-templates.md` 各小节的「归属目录」行为准**，`verify_ledgers.py` 直接解析那些标注、只认声明的目录，别处的同名副本报 `LEDGER_STRAY_COPY`。此前本节与阶段 skill 对 `FIGURE_EVIDENCE.csv`/`NATURE_QA.csv` 的口径不一致，而检查器两个目录先到先得，于是台账在两处分叉且机检看不见。
 
 使用 `templates/workspace-templates.md` 的模式，并遵守 `references/output-layout.md` 的归档映射。关键结论不得只留在对话里。完整交接规则见 `references/stage-contract.md`。
 
@@ -119,7 +121,7 @@ output:
 
 1. **READ**：运行 `date "+%F %T %z"`，按比赛起止时间计算真实剩余时间；读取 `STATE.md`、配置、阻塞和当前阶段证据。
 2. **SCOPE**：区分 `full_pipeline` 与 `stage_module`。局部入口允许缺上游，但必须显式记 `UPSTREAM_MISSING`，不得伪造已完成阶段。
-3. **ROUTE**：只调用当前主要缺口对应的一个阶段专家。T2/T3、T5/T7 可并行推进，但各自独立交接。
+3. **ROUTE**：只调用当前主要缺口对应的一个阶段专家。T2/T3、T5/T7 可并行推进，但各自独立交接，并遵守下面的**多会话写台账纪律**。
 4. **NATURE**：按 `references/nature-integrated-playbook.md` 直接执行本阶段的内置证据、图表、写作或交付规范；不调用外部 Nature skill。
 5. **VERIFY**：读取阶段专家和内置 Nature 产物的实际文件与命令输出。
 6. **REVIEW**：冻结本阶段工件，路由与 producer 不同上下文的 reviewer，按 `30+70` rubric 生成 R1；T6-T8 或 R1 总分 80-90 时盲审 R2，逐项取低生成 FINAL，并运行 `templates/verify_stage_review.py`（该脚本同时校验本阶段必读文档登记，缺项直接判 FAIL）。
@@ -127,6 +129,16 @@ output:
 8. **SIGNOFF**：跨越 H-001 至 H-005 时生成单一裁决简报；live 模式等待人确认。
 9. **WRITE**：写回状态、Nature QA、review 三件套、台账和当前可交版本，再决定是否进入下一阶段。
 10. **REPORT**：输出不超过 10 行的阶段简报，不把“已计划”写成“已完成”。
+
+## 多会话写台账纪律
+
+并行推进意味着同一工作区常有多个会话同时在写台账，而**只有 `RESULTS.jsonl` 有文件锁、`RESULTS.md` 是原子写**：`STATE.md` 的 `[HANDOFF]` 块、`CLAIM_LEDGER.csv`、`NATURE_QA.csv`、`REVIEW_PASS_ITEMS.csv` 等都是普通读-改-写，后写的会整份覆盖先写的，交接块或台账行静默消失，且事后看不出发生过。没有实现文件锁——竞赛期改动共享写入路径的风险高于它要防的问题，所以用纪律兜：
+
+- **写前先读**：改任何共享台账前重新读一次当前内容，不拿几轮之前的版本做基准；上一次读到现在如果调用过阶段专家，一律当作已过期。
+- **一次一块，追加优先**：CSV 只追加自己那几行，不重排、不整表重写；`STATE.md` 只改属于本会话阶段的 `[HANDOFF Tn]` 块，不重排全文。
+- **分文件而不是分段落**：并行的两个阶段往同一张表写时，各自先写 `Review-Results/Tn_*.json`/`.csv`，到阶段收口时再合并进共享台账——合并是一次可审计的动作，比两个会话交替追加更容易发现丢行。
+- **写完立即回读**：写入后重新读该文件，确认自己那几行还在、别人的行也还在。发现丢行不要重写了事，先在 `RISKS.md` 记一条，再从两侧的阶段产物补回。
+- **时间戳一律 `date -Iseconds` 取**，不手写：并发丢失最快的识别手段就是时间戳顺序与文件 mtime 对不上。
 
 ## 阶段路由
 

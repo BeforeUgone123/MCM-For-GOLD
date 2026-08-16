@@ -5,6 +5,8 @@ description: 数学建模竞赛 T6 检验与稳健性专家。用于执行正确
 
 # T6 检验与稳健性
 
+**安装依赖**：本 skill 与 `mcm-gold` **必须同级安装**（`skills/mcm-gold/` 与 `skills/mcm-gold-t0-prepare/` … `skills/mcm-gold-t8-submit/` 并列在同一目录）。下文全部 `../mcm-gold/…` 的必读文档、模板脚本与 Gate 引用都按这个布局解析：只装本阶段、或改动目录层级时，这些链接会一次性全断，必读门禁与机检随之全部失效。缺同级 `mcm-gold` 时先补齐再执行，不要绕过引用继续跑。
+
 先读[输出目录契约](../mcm-gold/references/output-layout.md)、[独立 Review 评分契约](../mcm-gold/references/stage-review-scoring.md)、[阶段交接契约](../mcm-gold/references/stage-contract.md)、[对抗门禁](../mcm-gold/references/adversarial-gates.md)、[证据契约](../mcm-gold/references/evidence-contract.md)和[内置 Nature 科学图表规范](../mcm-gold/references/nature-figures.md)。本阶段的目标不是让所有结果“通过”，而是准确界定哪些结论能存活。
 
 ## 必需输入
